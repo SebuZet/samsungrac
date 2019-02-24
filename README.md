@@ -2,6 +2,7 @@
 My implementation of ClimateDevice for controlling Samsung AC unit
 
 ## Configuration
+1. Get your device token ([This](https://community.home-assistant.io/t/samsung-ac/11747/5) is a good place to start)
 1. download file samsungrac.py to \<HASS configuration folder\>/custom_component/climate/
 2. download cert file to \<HASS configuration folder\>/custom_component/climate/
 3. add configuration section to you configuration.yaml file:
