@@ -17,7 +17,7 @@ eg:
 ```
 climate:
   - platform: samsungrac
-    host: 192.178.1.200:8888
+    host: https://192.178.1.200:8888
     access_token: axdbYtrsdf
     cert_file: /config/ac14k_m.pem
 ```
