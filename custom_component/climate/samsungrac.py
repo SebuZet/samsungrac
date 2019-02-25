@@ -53,7 +53,6 @@ TEMPERATURE_UNIT = 'temperature_unit'
 OP_SPECIAL_MODE = 'special_mode'
 OP_PURIFY = 'purify_mode'
 OP_CLEAN = 'clean_mode'
-OP_SLEEP = 'sleep_mode'
 OP_MODE = 'mode'
 OP_TARGET_TEMP = 'temp'
 OP_TEMP_MIN = 'min_temp'
@@ -77,13 +76,12 @@ ATTR_OP_SPECIAL_MODE = 'special_mode'
 ATTR_OP_SPECIAL_MODE_LIST = 'special_list'
 ATTR_OP_PURIFY = 'purify'
 ATTR_OP_PURIFY_LIST = 'purify_list'
-ATTR_OP_CLEAN = 'autoclean'
-ATTR_OP_CLEAN_LIST = 'autoclean_list'
-ATTR_OP_SLEEP = 'goodsleep'
-ATTR_OP_SLEEP_LIST = 'goodsleep_list'
+ATTR_OP_CLEAN = 'auto_clean'
+ATTR_OP_CLEAN_LIST = 'auto_clean_list'
+ATTR_OP_GOOD_SLEEP = 'good_sleep'
+ATTR_OP_GOOD_SLEEP_LIST = 'good_sleep_list'
 ATTR_OP_FAN_MODE_MAX = 'fan_mode_max'
 ATTR_OP_FAN_MODE_MAX_LIST = 'fan_mode_max_list'
-ATTR_OP_GOOD_SLEEP = 'good_sleep'
 
 ATTR_OPTIONS = 'options'
 ATTR_POWER = 'power'
@@ -201,7 +199,7 @@ OP_TO_ATTR_MAP = {
     OP_SPECIAL_MODE : ATTR_OP_SPECIAL_MODE,
     OP_PURIFY : ATTR_OP_PURIFY,
     OP_CLEAN : ATTR_OP_CLEAN,
-    OP_SLEEP : ATTR_OP_SLEEP,
+    OP_GOOD_SLEEP : ATTR_OP_GOOD_SLEEP,
     OP_MODE : ATTR_FAN_MODE,
     OP_TARGET_TEMP : ATTR_TEMPERATURE,
     OP_TEMP_MIN : ATTR_TARGET_TEMP_LOW,
@@ -210,14 +208,13 @@ OP_TO_ATTR_MAP = {
     OP_FAN_MODE_MAX : ATTR_FAN_MODE_MAX,
     OP_SWING : ATTR_SWING_MODE,
     OP_POWER : ATTR_POWER,
-    OP_GOOD_SLEEP : ATTR_OP_GOOD_SLEEP
 }
 
 ATTR_TO_OP_MAP = {
     ATTR_OP_SPECIAL_MODE : OP_SPECIAL_MODE,
     ATTR_OP_PURIFY : OP_PURIFY,
     ATTR_OP_CLEAN : OP_CLEAN,
-    ATTR_OP_SLEEP : OP_SLEEP,
+    ATTR_OP_GOOD_SLEEP : OP_GOOD_SLEEP,
     ATTR_FAN_MODE : OP_MODE,
     ATTR_TEMPERATURE : OP_TARGET_TEMP,
     ATTR_TARGET_TEMP_LOW : OP_TEMP_MIN,
@@ -226,11 +223,10 @@ ATTR_TO_OP_MAP = {
     ATTR_FAN_MODE_MAX : OP_FAN_MODE_MAX,
     ATTR_SWING_MODE : OP_SWING,
     ATTR_POWER : OP_POWER,
-    ATTR_OP_GOOD_SLEEP : OP_GOOD_SLEEP
 }
 
 DEFAULT_SUPPORT_FLAGS = SUPPORT_ON_OFF | SUPPORT_OPERATION_MODE | SUPPORT_SWING_MODE | SUPPORT_FAN_MODE | SUPPORT_TARGET_TEMPERATURE | SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_TARGET_TEMPERATURE_HIGH
-DEFAULT_SAMSUNG_SUPPORT_FLAGS = SUPPORT_OP_SPECIAL_MODE | SUPPORT_OP_PURIFY | SUPPORT_OP_CLEAN | SUPPORT_OP_FAN_MODE_MAX
+DEFAULT_SAMSUNG_SUPPORT_FLAGS = SUPPORT_OP_SPECIAL_MODE | SUPPORT_OP_PURIFY | SUPPORT_OP_CLEAN | SUPPORT_OP_FAN_MODE_MAX | SUPPORT_OP_GOOD_SLEEP
 DEFAULT_SAMSUNG_TEMP_MIN = 16
 DEFAULT_SAMSUNG_TEMP_MAX = 32
 
@@ -255,13 +251,17 @@ ATTR_CUSTOM_ATTRIBUTE = 'mode'
 ATTR_CUSTOM_ATTRIBUTE_VALUE = 'value'
 SERVICE_SET_CUSTOM_OPERATION = 'set_custom_mode'
 
-SERVICE_SCHEMA = vol.Schema({
-    vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
-})
-
-SET_CUSTOM_OPERATION_SCHEMA = SERVICE_SCHEMA.extend({
-    vol.Required(ATTR_CUSTOM_ATTRIBUTE): cv.string,
-    vol.Required(ATTR_CUSTOM_ATTRIBUTE_VALUE): cv.string,
+SET_CUSTOM_OPERATION_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_ENTITY_ID): cv.comp_entity_ids,
+    vol.Optional(ATTR_OP_SPECIAL_MODE): cv.string,
+    vol.Optional(ATTR_OP_PURIFY): cv.string,
+    vol.Optional(ATTR_OP_CLEAN): cv.string,
+    vol.Optional(ATTR_OP_GOOD_SLEEP): cv.string,
+    vol.Optional(ATTR_FAN_MODE): cv.string,
+    vol.Optional(ATTR_OP_FAN_MODE_MAX): cv.string,
+    vol.Optional(ATTR_FAN_MODE_MAX): cv.string,
+    vol.Optional(ATTR_SWING_MODE): cv.string,
+    vol.Optional(ATTR_POWER): cv.string,
 })
 
 _LOGGER = logging.getLogger(__name__)
@@ -336,11 +336,28 @@ class SamsungRacController:
     def convert_device_state_to_ha_state(self, op, state):
         if op in DEVICE_STATE_TO_HA and state in DEVICE_STATE_TO_HA[op]:
             return DEVICE_STATE_TO_HA[op][state]
+
+        if op == OP_GOOD_SLEEP:
+            return int(state[6::])
+        
+        if op == OP_TEMP_MAX or op == OP_TEMP_MIN or OP == OP_TARGET_TEMP:
+            return int(state)
+        
         return state
 
     def convert_ha_state_to_device_state(self, op, state):
         if op in HA_STATE_TO_DEVICE and state in HA_STATE_TO_DEVICE[op]:
             return HA_STATE_TO_DEVICE[op][state]
+        
+        if op == OP_GOOD_SLEEP:
+            if isinstance(state, int):
+                return state
+            else:
+                return int(state)
+
+        if op == OP_TEMP_MAX or op == OP_TEMP_MIN or OP == OP_TARGET_TEMP:
+            return int(state)
+
         return state
 
     def get_device_json(self):
@@ -694,9 +711,10 @@ class SamsungRAC(ClimateDevice):
     def set_custom_operation(self, **kwargs):
         """Set custom device mode to specified value."""
         _LOGGER.error("samsungrac: set_custom_operation")
-        op = kwargs.get(ATTR_CUSTOM_ATTRIBUTE)
-        val = kwargs.get(ATTR_CUSTOM_ATTRIBUTE_VALUE)
-        self.rac.execute_operation_command(op, val)
+        for key, value in kwargs.items():
+            if key in ATTR_TO_OP_MAP:
+                op = ATTR_TO_OP_MAP[key]
+                self.rac.execute_operation_command(op, value)
         self.schedule_update_ha_state()
 
     def async_set_custom_operation(self, **kwargs):
