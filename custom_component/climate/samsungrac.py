@@ -21,16 +21,18 @@ from homeassistant.const import (
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import (PLATFORM_SCHEMA, PLATFORM_SCHEMA_BASE)
-from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.util.temperature import convert as convert_temperature
-
+from homeassistant.helpers.service import extract_entity_ids
+import homeassistant.helpers.entity_component
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from datetime import timedelta
+import functools as ft
 
 import json
 import logging
 import time
+import asyncio
 
 REQUIREMENTS = ['requests>=2.21.0']
 
@@ -53,7 +55,7 @@ OP_PURIFY = 'purify_mode'
 OP_CLEAN = 'clean_mode'
 OP_SLEEP = 'sleep_mode'
 OP_MODE = 'mode'
-OP_TEMP = 'temp'
+OP_TARGET_TEMP = 'temp'
 OP_TEMP_MIN = 'min_temp'
 OP_TEMP_MAX = 'max_temp'
 OP_FAN_MODE = 'fan_mode'
@@ -73,12 +75,12 @@ SUPPORT_OP_GOOD_SLEEP = 16
 
 ATTR_OP_SPECIAL_MODE = 'special_mode'
 ATTR_OP_SPECIAL_MODE_LIST = 'special_list'
-ATTR_OP_PURIFY = 'purify_mode'
+ATTR_OP_PURIFY = 'purify'
 ATTR_OP_PURIFY_LIST = 'purify_list'
-ATTR_OP_CLEAN = 'clean_mode'
-ATTR_OP_CLEAN_LIST = 'clean_list'
-ATTR_OP_SLEEP = 'sleep_mode'
-ATTR_OP_SLEEP_LIST = 'sleep_list'
+ATTR_OP_CLEAN = 'autoclean'
+ATTR_OP_CLEAN_LIST = 'autoclean_list'
+ATTR_OP_SLEEP = 'goodsleep'
+ATTR_OP_SLEEP_LIST = 'goodsleep_list'
 ATTR_OP_FAN_MODE_MAX = 'fan_mode_max'
 ATTR_OP_FAN_MODE_MAX_LIST = 'fan_mode_max_list'
 ATTR_OP_GOOD_SLEEP = 'good_sleep'
@@ -87,9 +89,6 @@ ATTR_OPTIONS = 'options'
 ATTR_POWER = 'power'
 ATTR_FAN_MODE_MAX = 'fan_mode_max'
 ATTR_DESCRIPTION = 'description'
-
-ATTR_CUSTOM_OPERATION = 'custom_mode'
-ATTR_CUSTOM_OPERATION_VALUE = 'value'
 
 STATE_SLEEP = 'sleep'
 STATE_SPEED = 'speed'
@@ -137,6 +136,9 @@ RAC_STATE_DRY = 'Dry'
 COMMAND_URL = 0
 COMMAND_DATA = 1
 
+SAMSUNGRAC_DATA = 'samsung_rac_data'
+ENTITIES = 'entities'
+
 AVAILABLE_OPERATIONS_MAP = {
     OP_SPECIAL_MODE : [STATE_OFF, STATE_SLEEP, STATE_SPEED, STATE_2STEP, STATE_COMFORT, STATE_QUIET, STATE_SMART],
     OP_PURIFY : [STATE_OFF, STATE_ON],
@@ -176,7 +178,7 @@ AVAILABLE_COMMANDS_MAP = {
     OP_PURIFY : ['/devices/0/mode', '{left_bracket}"options": ["{value}"]{right_bracket}'],
     OP_CLEAN : ['/devices/0/mode', '{left_bracket}"options": ["{value}"]{right_bracket}'],
     OP_MODE : ['/devices/0/mode', '{left_bracket}"modes": ["{value}"]{right_bracket}'],
-    OP_TEMP : ['/devices/0/temperatures/0', '{left_bracket}"desired": {value}{right_bracket}'],
+    OP_TARGET_TEMP : ['/devices/0/temperatures/0', '{left_bracket}"desired": {value}{right_bracket}'],
     OP_TEMP_MIN : ['/devices/0/temperatures/0', '{left_bracket}"minimum": {value}{right_bracket}'],
     OP_TEMP_MAX : ['/devices/0/temperatures/0', '{left_bracket}"maximum": {value}{right_bracket}'],    
     OP_FAN_MODE : ['/devices/0/wind', '{left_bracket}"speedLevel": {value}{right_bracket}'],
@@ -201,7 +203,7 @@ OP_TO_ATTR_MAP = {
     OP_CLEAN : ATTR_OP_CLEAN,
     OP_SLEEP : ATTR_OP_SLEEP,
     OP_MODE : ATTR_FAN_MODE,
-    OP_TEMP : ATTR_TEMPERATURE,
+    OP_TARGET_TEMP : ATTR_TEMPERATURE,
     OP_TEMP_MIN : ATTR_TARGET_TEMP_LOW,
     OP_TEMP_MAX : ATTR_TARGET_TEMP_HIGH,
     OP_FAN_MODE : ATTR_OP_FAN_MODE_MAX,
@@ -217,7 +219,7 @@ ATTR_TO_OP_MAP = {
     ATTR_OP_CLEAN : OP_CLEAN,
     ATTR_OP_SLEEP : OP_SLEEP,
     ATTR_FAN_MODE : OP_MODE,
-    ATTR_TEMPERATURE : OP_TEMP,
+    ATTR_TEMPERATURE : OP_TARGET_TEMP,
     ATTR_TARGET_TEMP_LOW : OP_TEMP_MIN,
     ATTR_TARGET_TEMP_HIGH : OP_TEMP_MAX,
     ATTR_OP_FAN_MODE_MAX : OP_FAN_MODE,
@@ -249,13 +251,17 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_DEBUG, default=False): cv.boolean,
 })
 
-SERVICE_SET_CUSTOM_OPERATION = 'set_custom_operation'
-SCAN_INTERVAL = timedelta(seconds=60)
+ATTR_CUSTOM_ATTRIBUTE = 'mode'
+ATTR_CUSTOM_ATTRIBUTE_VALUE = 'value'
+SERVICE_SET_CUSTOM_OPERATION = 'set_custom_mode'
 
-SET_CUSTOM_OPERATION_SCHEMA = vol.Schema({
-    vol.Optional(ATTR_ENTITY_ID): cv.comp_entity_ids,
-    vol.Required(ATTR_CUSTOM_OPERATION): cv.string,
-    vol.Required(ATTR_CUSTOM_OPERATION_VALUE): cv.string,
+SERVICE_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+})
+
+SET_CUSTOM_OPERATION_SCHEMA = SERVICE_SCHEMA.extend({
+    vol.Required(ATTR_CUSTOM_ATTRIBUTE): cv.string,
+    vol.Required(ATTR_CUSTOM_ATTRIBUTE_VALUE): cv.string,
 })
 
 _LOGGER = logging.getLogger(__name__)
@@ -283,20 +289,33 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     _LOGGER.info("samsungrac: adding entity")
     async_add_entities([SamsungRAC(rac)], True)
 
-    async def async_service_custom_operation_set(entity, service):
-        hass = entity.hass
-        kwargs = {}
+    async def async_service_handler(service):
+        _LOGGER.info("samsungrac: async_service_handler: enter ")
+        params = {key: value for key, value in service.data.items()
+                  if key != ATTR_ENTITY_ID}
 
-        for attr, value in service.data.items():
-            kwargs[attr] = value
-        _LOGGER.info("samsungrac: async_service_custom_operation_set: entity: " + entity)
-        await entity.async_set_custom_operation(**kwargs)
+        devices = []
+        entity_ids = service.data.get(ATTR_ENTITY_ID)
+        _LOGGER.info("samsungrac: async_service_handler: entities " + str(entity_ids))
+        if SAMSUNGRAC_DATA in hass.data:
+            if entity_ids:
+                devices = [device for device in hass.data[SAMSUNGRAC_DATA][ENTITIES] if
+                    device.entity_id in entity_ids]
+            else:
+                devices = hass.data[SAMSUNGRAC_DATA][ENTITIES]
 
-    component = hass.data[DOMAIN] = EntityComponent(_LOGGER, DOMAIN, hass, SCAN_INTERVAL)
-    component.async_register_entity_service(
-        SERVICE_SET_CUSTOM_OPERATION, SET_CUSTOM_OPERATION_SCHEMA,
-        async_service_custom_operation_set
-    )
+        update_tasks = []
+        for device in devices:
+            if not hasattr(device, 'async_set_custom_operation'):
+                continue
+            await getattr(device, 'async_set_custom_operation')(**params)
+            update_tasks.append(device.async_update_ha_state(True))
+
+        if update_tasks:
+            await asyncio.wait(update_tasks, loop=hass.loop)
+
+    hass.services.async_register(DOMAIN, SERVICE_SET_CUSTOM_OPERATION, 
+        async_service_handler, schema=SET_CUSTOM_OPERATION_SCHEMA)
 
 class SamsungRacController:
     def __init__(self, host, token, cert_file, temp_unit, debug):
@@ -394,52 +413,57 @@ class SamsungRacController:
         _LOGGER.info("samsungrac: initialize: finished")
 
     def update_state_from_json(self, j):
-        self.state[ATTR_OPERATION_MODE] = self.convert_device_state_to_ha_state(OP_MODE, j['Devices'][0]['Mode']['modes'][0])
-        self.state[ATTR_POWER] = self.convert_device_state_to_ha_state(OP_POWER, j['Devices'][0]['Operation']['power'])
+        self.state[ATTR_OPERATION_MODE] = self.convert_device_state_to_ha_state(
+            OP_MODE, j['Devices'][0]['Mode']['modes'][0])
+        
+        self.state[ATTR_POWER] = self.convert_device_state_to_ha_state(
+            OP_POWER, j['Devices'][0]['Operation']['power'])
+        
         self.state[ATTR_OPTIONS] = j['Devices'][0]['Mode']['options']
         
         supported_features = self.get_config(SUPPORTED_FEATURES)
+        
         if supported_features & SUPPORT_TARGET_TEMPERATURE_HIGH:
-            self.state[ATTR_TARGET_TEMP_HIGH] = j['Devices'][0]['Temperatures'][0]['maximum']
+            self.state[ATTR_TARGET_TEMP_HIGH] = self.convert_device_state_to_ha_state(
+                OP_TEMP_MAX, j['Devices'][0]['Temperatures'][0]['maximum'])
 
         if supported_features & SUPPORT_TARGET_TEMPERATURE_LOW:
-            self.state[ATTR_TARGET_TEMP_LOW] = j['Devices'][0]['Temperatures'][0]['minimum']
+            self.state[ATTR_TARGET_TEMP_LOW] = self.convert_device_state_to_ha_state(
+                OP_TEMP_MIN, j['Devices'][0]['Temperatures'][0]['minimum'])
 
-        self.state[ATTR_CURRENT_TEMPERATURE] = j['Devices'][0]['Temperatures'][0]['current']
-        self.state[ATTR_TEMPERATURE] = j['Devices'][0]['Temperatures'][0]['desired']
+        self.state[ATTR_CURRENT_TEMPERATURE] = self.convert_device_state_to_ha_state(
+            OP_TARGET_TEMP, j['Devices'][0]['Temperatures'][0]['current'])
+
+        self.state[ATTR_TEMPERATURE] = self.convert_device_state_to_ha_state(
+            OP_TARGET_TEMP, j['Devices'][0]['Temperatures'][0]['desired'])
         
         if self.custom_flags & SUPPORT_OP_SPECIAL_MODE:
-            self.state[ATTR_OP_SPECIAL_MODE] = self.convert_device_state_to_ha_state(OP_SPECIAL_MODE, j['Devices'][0]['Mode']['options'][0])
+            self.state[ATTR_OP_SPECIAL_MODE] = self.convert_device_state_to_ha_state(
+                OP_SPECIAL_MODE, j['Devices'][0]['Mode']['options'][0])
         
         if self.custom_flags & SUPPORT_OP_PURIFY:
-            self.state[ATTR_OP_PURIFY] = self.convert_device_state_to_ha_state(OP_PURIFY, j['Devices'][0]['Mode']['options'][3])
+            self.state[ATTR_OP_PURIFY] = self.convert_device_state_to_ha_state(
+                OP_PURIFY, j['Devices'][0]['Mode']['options'][3])
         
         if self.custom_flags & SUPPORT_OP_CLEAN:
-           self.state[ATTR_OP_CLEAN] = self.convert_device_state_to_ha_state(OP_CLEAN, j['Devices'][0]['Mode']['options'][2])
+            self.state[ATTR_OP_CLEAN] = self.convert_device_state_to_ha_state(
+                OP_CLEAN, j['Devices'][0]['Mode']['options'][2])
 
         if supported_features & SUPPORT_SWING_MODE:        
-            dev_state = j['Devices'][0]['Wind']['direction']
-            if OP_SWING in DEVICE_STATE_TO_HA and dev_state in DEVICE_STATE_TO_HA[OP_SWING]:
-                self.state[ATTR_SWING_MODE] = DEVICE_STATE_TO_HA[OP_SWING][dev_state]
-            else:
-                self.state[ATTR_SWING_MODE] = dev_state
+            self.state[ATTR_SWING_MODE] = self.convert_device_state_to_ha_state(
+                OP_SWING, j['Devices'][0]['Wind']['direction'])
         
         if supported_features & SUPPORT_FAN_MODE:
-            dev_state = j['Devices'][0]['Wind']['speedLevel']
-            if OP_FAN_MODE in DEVICE_STATE_TO_HA and dev_state in DEVICE_STATE_TO_HA[OP_FAN_MODE]:
-                self.state[ATTR_FAN_MODE] = DEVICE_STATE_TO_HA[OP_FAN_MODE][dev_state]
-            else:
-                self.state[ATTR_FAN_MODE] = dev_state
+            self.state[ATTR_FAN_MODE] = self.convert_device_state_to_ha_state(
+                OP_FAN_MODE, j['Devices'][0]['Wind']['speedLevel'])
         
         if self.custom_flags & SUPPORT_OP_FAN_MODE_MAX:
-            dev_state = j['Devices'][0]['Wind']['maxSpeedLevel']
-            if OP_FAN_MODE_MAX in DEVICE_STATE_TO_HA and dev_state in DEVICE_STATE_TO_HA[OP_FAN_MODE_MAX]:
-                self.state[ATTR_FAN_MODE_MAX] = DEVICE_STATE_TO_HA[OP_FAN_MODE_MAX][dev_state]
-            else:
-                self.state[ATTR_FAN_MODE_MAX] = dev_state
+            self.state[ATTR_FAN_MODE_MAX] = self.convert_device_state_to_ha_state(
+                OP_FAN_MODE_MAX, j['Devices'][0]['Wind']['maxSpeedLevel'])
         
         if self.custom_flags & SUPPORT_OP_GOOD_SLEEP:
-            pass
+            self.state[ATTR_OP_GOOD_SLEEP] = self.convert_device_state_to_ha_state(
+                OP_GOOD_SLEEP, j['Devices'][0]['Mode']['options'][1])
 
         self.is_on = self.state[ATTR_POWER] == STATE_ON
 
@@ -489,6 +513,8 @@ class SamsungRacController:
                 if resp.ok:
                     if org_op in OP_TO_ATTR_MAP:
                         self.state[org_op] = val
+                        if update_state:
+                            self.rac.update_state()
                     return True
                 else:
                     _LOGGER.error("samsungrac: execute_operation_command FAILED: status code: {}".format(resp.status_code))
@@ -628,7 +654,7 @@ class SamsungRAC(ClimateDevice):
 
     def set_temperature(self, **kwargs):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
-            self.rac.execute_operation_command(OP_TEMP, int(kwargs.get(ATTR_TEMPERATURE)), False)
+            self.rac.execute_operation_command(OP_TARGET_TEMP, int(kwargs.get(ATTR_TEMPERATURE)), False)
         if kwargs.get(ATTR_TARGET_TEMP_HIGH) is not None:
             self.rac.execute_operation_command(OP_TEMP_MAX, int(kwargs.get(ATTR_TARGET_TEMP_HIGH)), False)
         if kwargs.get(ATTR_TARGET_TEMP_LOW) is not None:
@@ -666,19 +692,25 @@ class SamsungRAC(ClimateDevice):
         self.schedule_update_ha_state()
 
     def set_custom_operation(self, **kwargs):
-        for key, value in kwargs.items():
-            _LOGGER.error("samsungrac: execute_operation_command: kwarg: {0} = {1}".format(key, value))
-
-        if kwargs.get(ATTR_CUSTOM_OPERATION) is not None:
-            op = kwargs.get(ATTR_CUSTOM_OPERATION)
-        if kwargs.get(ATTR_CUSTOM_OPERATION_VALUE) is not None:
-            val = kwargs.get(ATTR_CUSTOM_OPERATION_VALUE)
-        if op is not None and val is not None:
-            self.rac.execute_operation_command(op, val)
-            self.rac.update_state()
-            self.schedule_update_ha_state()
+        """Set custom device mode to specified value."""
+        _LOGGER.error("samsungrac: set_custom_operation")
+        op = kwargs.get(ATTR_CUSTOM_ATTRIBUTE)
+        val = kwargs.get(ATTR_CUSTOM_ATTRIBUTE_VALUE)
+        self.rac.execute_operation_command(op, val)
+        self.schedule_update_ha_state()
 
     def async_set_custom_operation(self, **kwargs):
+        """Set custom device mode to specified value."""
         _LOGGER.error("samsungrac: async_set_custom_operation")
         return self.hass.async_add_job(
             ft.partial(self.set_custom_operation, **kwargs))
+
+    async def async_added_to_hass(self):
+        if SAMSUNGRAC_DATA not in self.hass.data:
+            self.hass.data[SAMSUNGRAC_DATA] = {}
+            self.hass.data[SAMSUNGRAC_DATA][ENTITIES] = []
+        self.hass.data[SAMSUNGRAC_DATA][ENTITIES].append(self)
+
+    async def async_will_remove_from_hass(self):
+        if SAMSUNGRAC_DATA  in self.hass.data:
+            self.hass.data[SAMSUNGRAC_DATA].remove(self)
