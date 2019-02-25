@@ -340,24 +340,12 @@ class SamsungRacController:
         if op == OP_GOOD_SLEEP:
             return int(state[6::])
         
-        if op == OP_TEMP_MAX or op == OP_TEMP_MIN or OP == OP_TARGET_TEMP:
-            return int(state)
-        
         return state
 
     def convert_ha_state_to_device_state(self, op, state):
         if op in HA_STATE_TO_DEVICE and state in HA_STATE_TO_DEVICE[op]:
             return HA_STATE_TO_DEVICE[op][state]
         
-        if op == OP_GOOD_SLEEP:
-            if isinstance(state, int):
-                return state
-            else:
-                return int(state)
-
-        if op == OP_TEMP_MAX or op == OP_TEMP_MIN or OP == OP_TARGET_TEMP:
-            return int(state)
-
         return state
 
     def get_device_json(self):
