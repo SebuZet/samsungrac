@@ -336,7 +336,7 @@ class SamsungRacController:
         resp = requests.get(self.host + url, headers=self.extra_headers, verify=False, cert=self.cert, data=json.dumps({ 'sebu' : 'zet' }))
         if resp.ok:
             _LOGGER.info("samsungrac: get_device_json: parsing response")
-            j = json.loads(resp.content)
+            j = json.loads(resp.text)
             _LOGGER.info("samsungrac: get_device_json: json parsed: " + json.dumps(j))
             self.connected = True
             return j
@@ -666,6 +666,9 @@ class SamsungRAC(ClimateDevice):
         self.schedule_update_ha_state()
 
     def set_custom_operation(self, **kwargs):
+        for key, value in kwargs.items():
+            _LOGGER.error("samsungrac: execute_operation_command: kwarg: {0} = {1}".format(key, value))
+
         if kwargs.get(ATTR_CUSTOM_OPERATION) is not None:
             op = kwargs.get(ATTR_CUSTOM_OPERATION)
         if kwargs.get(ATTR_CUSTOM_OPERATION_VALUE) is not None:
@@ -676,5 +679,6 @@ class SamsungRAC(ClimateDevice):
             self.schedule_update_ha_state()
 
     def async_set_custom_operation(self, **kwargs):
+        _LOGGER.error("samsungrac: async_set_custom_operation")
         return self.hass.async_add_job(
             ft.partial(self.set_custom_operation, **kwargs))
