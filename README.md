@@ -19,7 +19,7 @@ climate:
   - platform: samsungrac
     host: 192.178.1.200:8888
     access_token: axdbYtrsdf
-    cert_file: /config/custom_component/climate/ac14k_m
+    cert_file: /config/ac14k_m.pem
 ```
 ## Functionality
 * Power on/off
@@ -31,7 +31,7 @@ climate:
 * Read device configuration
 ## TO DO
 * Implement service for
-* Select special operation mode
+   * Select special operation mode
    * Turn on/off Purify mode
    * Turn on/off Clean mode
    * Turn on Good Sleep mode
