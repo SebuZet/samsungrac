@@ -52,6 +52,7 @@ TEMPERATURE_UNIT = 'temperature_unit'
 
 OP_SPECIAL_MODE = 'special_mode'
 OP_PURIFY = 'purify_mode'
+OP_BEEP = 'beep_mode'
 OP_CLEAN = 'clean_mode'
 OP_MODE = 'mode'
 OP_TARGET_TEMP = 'temp'
@@ -61,7 +62,7 @@ OP_FAN_MODE = 'fan_mode'
 OP_FAN_MODE_MAX = 'fan_mode_max'
 OP_SWING = 'swing'
 OP_POWER = 'power'
-OP_GOOD_SLEEP = 'good_sleep'
+OP_GOOD_SLEEP = 'good_sleep_mode'
 OP_GET_STATE = 'get_state'
 OP_GET_CONFIG = 'get_config'
 OP_GET_INFO = 'get_info'
@@ -71,11 +72,14 @@ SUPPORT_OP_PURIFY = 2
 SUPPORT_OP_CLEAN = 4
 SUPPORT_OP_FAN_MODE_MAX = 8
 SUPPORT_OP_GOOD_SLEEP = 16
+SUPPORT_OP_BEEP = 32
 
 ATTR_OP_SPECIAL_MODE = 'special_mode'
 ATTR_OP_SPECIAL_MODE_LIST = 'special_list'
 ATTR_OP_PURIFY = 'purify'
 ATTR_OP_PURIFY_LIST = 'purify_list'
+ATTR_OP_BEEP = 'beep'
+ATTR_OP_BEEP_LIST_LIST = 'beep_list'
 ATTR_OP_CLEAN = 'auto_clean'
 ATTR_OP_CLEAN_LIST = 'auto_clean_list'
 ATTR_OP_GOOD_SLEEP = 'good_sleep'
@@ -111,10 +115,12 @@ RAC_STATE_COMFORT = 'Comode_Comfort'
 RAC_STATE_QUIET = 'Comode_Quiet'
 RAC_STATE_SMART = 'Comode_Smart'
 RAC_STATE_SPECIAL_MODE_OFF = 'Comode_Off'
-REC_STATE_PURIFY_ON = 'Spi_On'
-REC_STATE_PURIFY_OFF = 'Spi_Off'
-REC_STATE_CLEAN_ON = 'Autoclean_On'
-REC_STATE_CLEAN_OFF = 'Autoclean_Off'
+RAC_STATE_PURIFY_ON = 'Spi_On'
+RAC_STATE_PURIFY_OFF = 'Spi_Off'
+RAC_STATE_BEEP_ON = 'Volume_100'
+RAC_STATE_BEEP_OFF = 'Volume_0'
+RAC_STATE_CLEAN_ON = 'Autoclean_On'
+RAC_STATE_CLEAN_OFF = 'Autoclean_Off'
 RAC_STATE_WIND = 'Wind'
 RAC_STATE_LOW = 1
 RAC_STATE_MEDIUM = 2
@@ -147,34 +153,39 @@ AVAILABLE_OPERATIONS_MAP = {
     OP_FAN_MODE_MAX : [STATE_AUTO, STATE_LOW, STATE_MEDIUM, STATE_HIGH, STATE_TURBO],
     OP_SWING : [STATE_ALL, STATE_UP_DOWN, STATE_LEFT_RIGHT, STATE_FIX],
     OP_POWER : [STATE_OFF, STATE_ON],
+    OP_BEEP : [STATE_OFF, STATE_ON],
 }
 
 DEVICE_STATE_TO_HA = {
     OP_SPECIAL_MODE : { RAC_STATE_SPECIAL_MODE_OFF : STATE_OFF, RAC_STATE_SLEEP : STATE_SLEEP, RAC_STATE_SPEED : STATE_SPEED, RAC_STATE_2STEP : STATE_2STEP, RAC_STATE_COMFORT : STATE_COMFORT, RAC_STATE_QUIET : STATE_QUIET, RAC_STATE_SMART : STATE_SMART },
-    OP_PURIFY : { REC_STATE_PURIFY_OFF : STATE_OFF, REC_STATE_PURIFY_ON : STATE_ON },
-    OP_CLEAN : { REC_STATE_CLEAN_OFF : STATE_OFF, REC_STATE_CLEAN_ON : STATE_ON },
+    OP_PURIFY : { RAC_STATE_PURIFY_OFF : STATE_OFF, RAC_STATE_PURIFY_ON : STATE_ON },
+    OP_CLEAN : { RAC_STATE_CLEAN_OFF : STATE_OFF, RAC_STATE_CLEAN_ON : STATE_ON },
     OP_MODE : { RAC_STATE_OFF : STATE_OFF, RAC_STATE_HEAT : STATE_HEAT, RAC_STATE_COOL : STATE_COOL, RAC_STATE_DRY : STATE_DRY, RAC_STATE_WIND : STATE_FAN_ONLY, RAC_STATE_AUTO : STATE_AUTO },
     OP_FAN_MODE : { 0 : STATE_AUTO, 1 : STATE_LOW, 2 : STATE_MEDIUM, 3 : STATE_HIGH, 4 : STATE_TURBO },
     OP_FAN_MODE_MAX : { 0 : STATE_AUTO, 1 : STATE_LOW, 2 : STATE_MEDIUM, 3 : STATE_HIGH, 4 : STATE_TURBO },
     OP_SWING : { RAC_STATE_ALL : STATE_ALL, RAC_STATE_UP_DOWN : STATE_UP_DOWN, RAC_STATE_LEFT_RIGHT : STATE_LEFT_RIGHT, RAC_STATE_FIX : STATE_FIX },
     OP_POWER : { RAC_STATE_OFF : STATE_OFF, RAC_STATE_ON : STATE_ON },
+    OP_BEEP : { RAC_STATE_BEEP_ON : STATE_ON, RAC_STATE_BEEP_OFF : STATE_OFF },
 }
 
 HA_STATE_TO_DEVICE = {
     OP_SPECIAL_MODE : { STATE_OFF : RAC_STATE_SPECIAL_MODE_OFF, STATE_SLEEP : RAC_STATE_SLEEP, STATE_SPEED : RAC_STATE_SPEED, STATE_2STEP : RAC_STATE_2STEP, STATE_COMFORT : RAC_STATE_COMFORT, STATE_QUIET : RAC_STATE_QUIET, STATE_SMART : RAC_STATE_SMART },
-    OP_PURIFY : { STATE_OFF : REC_STATE_PURIFY_OFF, STATE_ON : REC_STATE_PURIFY_ON },
-    OP_CLEAN : { STATE_OFF : REC_STATE_CLEAN_OFF, STATE_ON : REC_STATE_CLEAN_ON },
+    OP_PURIFY : { STATE_OFF : RAC_STATE_PURIFY_OFF, STATE_ON : RAC_STATE_PURIFY_ON },
+    OP_CLEAN : { STATE_OFF : RAC_STATE_CLEAN_OFF, STATE_ON : RAC_STATE_CLEAN_ON },
     OP_MODE : { STATE_OFF : RAC_STATE_OFF, STATE_HEAT : RAC_STATE_HEAT, STATE_COOL : RAC_STATE_COOL, STATE_DRY : RAC_STATE_DRY, STATE_FAN_ONLY : RAC_STATE_WIND, STATE_AUTO : RAC_STATE_AUTO },
     OP_FAN_MODE : { STATE_AUTO : 0, STATE_LOW : 1, STATE_MEDIUM : 2, STATE_HIGH : 3, STATE_TURBO : 4 },
     OP_FAN_MODE_MAX : { STATE_AUTO : 0, STATE_LOW : 1, STATE_MEDIUM : 2, STATE_HIGH : 3, STATE_TURBO : 4 },
     OP_SWING : { STATE_ALL : RAC_STATE_ALL, STATE_UP_DOWN : RAC_STATE_UP_DOWN, STATE_LEFT_RIGHT : RAC_STATE_LEFT_RIGHT, STATE_FIX : RAC_STATE_FIX },
     OP_POWER : { STATE_OFF : RAC_STATE_OFF, STATE_ON : RAC_STATE_ON },
+    OP_BEEP : { STATE_OFF : RAC_STATE_BEEP_OFF, STATE_ON : RAC_STATE_BEEP_ON },
 }
 
 AVAILABLE_COMMANDS_MAP = {
     OP_SPECIAL_MODE : ['/devices/0/mode', '{left_bracket}"options": ["{value}"]{right_bracket}'],
     OP_PURIFY : ['/devices/0/mode', '{left_bracket}"options": ["{value}"]{right_bracket}'],
     OP_CLEAN : ['/devices/0/mode', '{left_bracket}"options": ["{value}"]{right_bracket}'],
+    OP_GOOD_SLEEP : ['/devices/0/mode', '{left_bracket}"options": ["Sleep_{value}"]{right_bracket}'],
+    OP_BEEP : ['/devices/0/mode', '{left_bracket}"options": ["{value}"]{right_bracket}'],
     OP_MODE : ['/devices/0/mode', '{left_bracket}"modes": ["{value}"]{right_bracket}'],
     OP_TARGET_TEMP : ['/devices/0/temperatures/0', '{left_bracket}"desired": {value}{right_bracket}'],
     OP_TEMP_MIN : ['/devices/0/temperatures/0', '{left_bracket}"minimum": {value}{right_bracket}'],
@@ -183,7 +194,6 @@ AVAILABLE_COMMANDS_MAP = {
     OP_FAN_MODE_MAX : ['/devices/0/wind', '{left_bracket}"maxSpeedLevel": {value}{right_bracket}'],
     OP_SWING : ['/devices/0/wind', '{left_bracket}"direction": "{value}"{right_bracket}'],
     OP_POWER : ['/devices/0', '{left_bracket}"Operation": {left_bracket}"power":"{value}"{right_bracket}{right_bracket}'],
-    OP_GOOD_SLEEP : ['/devices/0/mode', '{left_bracket}"Operation": "{value}"{right_bracket}'],
     OP_GET_STATE : ['/devices'],
     OP_GET_CONFIG : ['/devices/0/configuration'],
     OP_GET_INFO : ['/devices/0/information']
@@ -208,6 +218,7 @@ OP_TO_ATTR_MAP = {
     OP_FAN_MODE_MAX : ATTR_FAN_MODE_MAX,
     OP_SWING : ATTR_SWING_MODE,
     OP_POWER : ATTR_POWER,
+    OP_BEEP : ATTR_OP_BEEP,
 }
 
 ATTR_TO_OP_MAP = {
@@ -223,10 +234,11 @@ ATTR_TO_OP_MAP = {
     ATTR_FAN_MODE_MAX : OP_FAN_MODE_MAX,
     ATTR_SWING_MODE : OP_SWING,
     ATTR_POWER : OP_POWER,
+    ATTR_OP_BEEP : OP_BEEP,
 }
 
 DEFAULT_SUPPORT_FLAGS = SUPPORT_ON_OFF | SUPPORT_OPERATION_MODE | SUPPORT_SWING_MODE | SUPPORT_FAN_MODE | SUPPORT_TARGET_TEMPERATURE | SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_TARGET_TEMPERATURE_HIGH
-DEFAULT_SAMSUNG_SUPPORT_FLAGS = SUPPORT_OP_SPECIAL_MODE | SUPPORT_OP_PURIFY | SUPPORT_OP_CLEAN | SUPPORT_OP_FAN_MODE_MAX | SUPPORT_OP_GOOD_SLEEP
+DEFAULT_SAMSUNG_SUPPORT_FLAGS = SUPPORT_OP_SPECIAL_MODE | SUPPORT_OP_PURIFY | SUPPORT_OP_CLEAN | SUPPORT_OP_FAN_MODE_MAX | SUPPORT_OP_GOOD_SLEEP | SUPPORT_OP_BEEP
 DEFAULT_SAMSUNG_TEMP_MIN = 16
 DEFAULT_SAMSUNG_TEMP_MAX = 32
 
@@ -262,6 +274,7 @@ SET_CUSTOM_OPERATION_SCHEMA = vol.Schema({
     vol.Optional(ATTR_FAN_MODE_MAX): cv.string,
     vol.Optional(ATTR_SWING_MODE): cv.string,
     vol.Optional(ATTR_POWER): cv.string,
+    vol.Optional(ATTR_OP_BEEP) : cv.string,
 })
 
 _LOGGER = logging.getLogger(__name__)
@@ -286,17 +299,14 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         _LOGGER.error("samsungrac: platform not ready")
         return PlatformNotReady
 
-    _LOGGER.info("samsungrac: adding entity")
     async_add_entities([SamsungRAC(rac)], True)
 
     async def async_service_handler(service):
-        _LOGGER.info("samsungrac: async_service_handler: enter ")
         params = {key: value for key, value in service.data.items()
                   if key != ATTR_ENTITY_ID}
 
         devices = []
         entity_ids = service.data.get(ATTR_ENTITY_ID)
-        _LOGGER.info("samsungrac: async_service_handler: entities " + str(entity_ids))
         if SAMSUNGRAC_DATA in hass.data:
             if entity_ids:
                 devices = [device for device in hass.data[SAMSUNGRAC_DATA][ENTITIES] if
@@ -340,6 +350,9 @@ class SamsungRacController:
         if op == OP_GOOD_SLEEP:
             return int(state[6::])
         
+        if op == OP_BEEP:
+            return STATE_UNKNOWN
+
         return state
 
     def convert_ha_state_to_device_state(self, op, state):
@@ -352,7 +365,6 @@ class SamsungRacController:
         import requests, requests.exceptions
 
         self.connected = False
-        _LOGGER.info("samsungrac: get_device_json")
 #        try:
         cmds = self.get_command_for_operation(OP_GET_STATE, None)
         url  =  cmds[COMMAND_URL] if cmds and len(cmds) > COMMAND_URL else ''
@@ -365,7 +377,8 @@ class SamsungRacController:
             self.connected = True
             return j
         else:
-            _LOGGER.info("samsungrac: get_device_json: response error: {}".format(resp.status_code))
+            _LOGGER.error("samsungrac: get_device_json: response error: {}".format(resp.status_code))
+            _LOGGER.error("samsungrac: get_device_json: response text: {}".format(resp.text))
 
 #        except requests.exceptions.SSLError:
 #            _LOGGER.error("samsungrac: SSL Error, make sure you have correct cert_file configuration")
@@ -395,6 +408,7 @@ class SamsungRacController:
             operations_map[OP_SPECIAL_MODE] = AVAILABLE_OPERATIONS_MAP[OP_SPECIAL_MODE]
             operations_map[OP_PURIFY] = AVAILABLE_OPERATIONS_MAP[OP_PURIFY]
             operations_map[OP_CLEAN] = AVAILABLE_OPERATIONS_MAP[OP_CLEAN]
+            operations_map[OP_BEEP] = AVAILABLE_OPERATIONS_MAP[OP_BEEP]
             
             self.config[LIST_OPERATION] = operations_map
             
@@ -472,16 +486,19 @@ class SamsungRacController:
 
         self.is_on = self.state[ATTR_POWER] == STATE_ON
 
+        if self.custom_flags & SUPPORT_OP_BEEP:
+            self.state[ATTR_OP_BEEP] = self.convert_device_state_to_ha_state(
+                OP_BEEP, j['Devices'][0]['Mode']['options'][14])
+        
+
+
     def update_state(self):
-        _LOGGER.info("samsungrac: update state")
         j = self.get_device_json()
         if j is not None:
             self.update_state_from_json(j)
-        _LOGGER.info("samsungrac: update state completed")
 
     def get_command_for_operation(self, op, value):
         config = self.config
-        _LOGGER.info("samsungrac: get_command_for_operation, {}, {}".format(op, value))
         if LIST_COMMANDS_REMAP in self.config and value is not None:
             if op in config[LIST_COMMANDS_REMAP]:
                 if value in config[LIST_COMMANDS_REMAP][op]:
@@ -494,7 +511,7 @@ class SamsungRacController:
                 _LOGGER.info("samsungrac: get_command_for_operation, {}".format(command))
                 return command
 
-        _LOGGER.info("samsungrac: get_command_for_operation, NOT FOUND")
+        _LOGGER.error("samsungrac: get_command_for_operation, NOT FOUND")
         return None
 
     def execute_operation_command(self, op, val, update_state=True):
@@ -509,27 +526,27 @@ class SamsungRacController:
             url = cmd[COMMAND_URL]
         if command is not None:        
             command = command.format(left_bracket="{", right_bracket="}", value=self.convert_ha_state_to_device_state(op, val))
-            _LOGGER.info("samsungrac: execute_operation_command, formatted op: {}".format(command))
             try:
                 url = self.host + (url if url else '')
-                _LOGGER.error("samsungrac: EXECUTE {}, at {}".format(command, url))
+                _LOGGER.info("samsungrac: execute_operation_command, exe {}, at {}".format(command, url))
                 resp = requests.put(url, headers = self.extra_headers, verify=False, cert=self.cert, data=command)
-                #_LOGGER.info("samsungrac: execute_operation_command complited: {}, status code: {}".format("OK" if resp.ok else "NOT OK", resp.status_code))
                 if resp.ok:
+                    _LOGGER.info("samsungrac: execute_operation_command complited: status code: {}".format(resp.status_code))
                     if org_op in OP_TO_ATTR_MAP:
                         self.state[org_op] = val
                         if update_state:
                             self.rac.update_state()
-                    return True
+                    return
                 else:
                     _LOGGER.error("samsungrac: execute_operation_command FAILED: status code: {}".format(resp.status_code))
                     _LOGGER.error("samsungrac: execute_operation_command FAILED: msg: {}".format(resp.text))
             except:
                 _LOGGER.error("samsungrac: execute_operation_command: response error: {}".format(resp.status_code))
                 _LOGGER.info("samsungrac: execute_operation_command, formatted op: {}".format(command))
+                return
             
         _LOGGER.error("samsungrac: execute_operation_command: FAILED: cannot find command")
-        return False
+        return
 
     def get_state(self, key):
         return self.state[key] if key in self.state else None
@@ -589,19 +606,22 @@ class SamsungRAC(ClimateDevice):
 
         if supported_features & SUPPORT_OP_PURIFY:
             data[ATTR_OP_PURIFY] = self.rac.get_state(ATTR_OP_PURIFY)
-            if OP_PURIFY in self.rac.get_config(LIST_OPERATION):
+            if OP_PURIFY in self.rac.get_config(LIST_OPERATION) and self.rac.debug:
                 data[ATTR_OP_PURIFY_LIST] = self.rac.get_config(LIST_OPERATION)[OP_PURIFY]
 
         if supported_features & SUPPORT_OP_CLEAN:
             data[ATTR_OP_CLEAN] = self.rac.get_state(ATTR_OP_CLEAN)
-            if OP_CLEAN in self.rac.get_config(LIST_OPERATION):
+            if OP_CLEAN in self.rac.get_config(LIST_OPERATION) and self.rac.debug:
                 data[ATTR_OP_CLEAN_LIST] = self.rac.get_config(LIST_OPERATION)[OP_CLEAN]
 
         if supported_features & SUPPORT_OP_GOOD_SLEEP:
             data[ATTR_OP_GOOD_SLEEP] = self.rac.get_state(ATTR_OP_GOOD_SLEEP)
-            if OP_GOOD_SLEEP in self.rac.get_config(LIST_OPERATION):
-                data[ATTR_OP_GOOD_SLEEP_LIST] = self.rac.get_config(LIST_OPERATION)[OP_GOOD_SLEEP]
             
+        if supported_features & SUPPORT_OP_BEEP:
+            data[ATTR_OP_BEEP] = self.rac.get_state(ATTR_OP_BEEP)
+            if OP_BEEP in self.rac.get_config(LIST_OPERATION) and self.rac.debug:
+                data[ATTR_OP_BEEP_LIST_LIST] = self.rac.get_config(LIST_OPERATION)[OP_BEEP]
+
         if self.rac.debug:
             data[ATTR_OPTIONS] = self.rac.get_state(ATTR_OPTIONS)
             if self.rac.get_config(ATTR_DESCRIPTION) is not None:
@@ -698,7 +718,6 @@ class SamsungRAC(ClimateDevice):
 
     def set_custom_operation(self, **kwargs):
         """Set custom device mode to specified value."""
-        _LOGGER.error("samsungrac: set_custom_operation")
         for key, value in kwargs.items():
             if key in ATTR_TO_OP_MAP:
                 op = ATTR_TO_OP_MAP[key]
@@ -707,7 +726,6 @@ class SamsungRAC(ClimateDevice):
 
     def async_set_custom_operation(self, **kwargs):
         """Set custom device mode to specified value."""
-        _LOGGER.error("samsungrac: async_set_custom_operation")
         return self.hass.async_add_job(
             ft.partial(self.set_custom_operation, **kwargs))
 
