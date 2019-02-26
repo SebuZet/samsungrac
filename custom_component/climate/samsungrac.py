@@ -47,7 +47,8 @@ LIST_OPERATION = 'op_list'
 LIST_COMMANDS = 'op_cmds_list'
 LIST_COMMANDS_REMAP = 'op_user_cmds_list'
 
-SUPPORTED_FEATURES = 'supported_features'
+SUPPORTED_FEATURES = 'features'
+SUPPORTED_CUSTOM_FEATURES = 'custom_features'
 TEMPERATURE_UNIT = 'temperature_unit'
 
 OP_SPECIAL_MODE = 'special_mode'
@@ -67,12 +68,15 @@ OP_GET_STATE = 'get_state'
 OP_GET_CONFIG = 'get_config'
 OP_GET_INFO = 'get_info'
 
-SUPPORT_OP_SPECIAL_MODE = 1
-SUPPORT_OP_PURIFY = 2
-SUPPORT_OP_CLEAN = 4
-SUPPORT_OP_FAN_MODE_MAX = 8
-SUPPORT_OP_GOOD_SLEEP = 16
-SUPPORT_OP_BEEP = 32
+SUPPORT_CUSTOM_MODES = 1
+SUPPORT_TEMPERATURES = 2
+SUPPORT_WIND = 4
+SUPPORT_OP_SPECIAL_MODE = 8
+SUPPORT_OP_PURIFY = 16
+SUPPORT_OP_CLEAN = 32
+SUPPORT_OP_FAN_MODE_MAX = 64
+SUPPORT_OP_GOOD_SLEEP = 128
+SUPPORT_OP_BEEP = 256
 
 ATTR_OP_SPECIAL_MODE = 'special_mode'
 ATTR_OP_SPECIAL_MODE_LIST = 'special_list'
@@ -91,6 +95,7 @@ ATTR_OPTIONS = 'options'
 ATTR_POWER = 'power'
 ATTR_FAN_MODE_MAX = 'fan_mode_max'
 ATTR_DESCRIPTION = 'description'
+ATTR_CUSTOM_FEATURES = 'supported_custom_features'
 
 STATE_SLEEP = 'sleep'
 STATE_SPEED = 'speed'
@@ -237,8 +242,29 @@ ATTR_TO_OP_MAP = {
     ATTR_OP_BEEP : OP_BEEP,
 }
 
-DEFAULT_SUPPORT_FLAGS = SUPPORT_ON_OFF | SUPPORT_OPERATION_MODE | SUPPORT_SWING_MODE | SUPPORT_FAN_MODE | SUPPORT_TARGET_TEMPERATURE | SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_TARGET_TEMPERATURE_HIGH
-DEFAULT_SAMSUNG_SUPPORT_FLAGS = SUPPORT_OP_SPECIAL_MODE | SUPPORT_OP_PURIFY | SUPPORT_OP_CLEAN | SUPPORT_OP_FAN_MODE_MAX | SUPPORT_OP_GOOD_SLEEP | SUPPORT_OP_BEEP
+JATTR_DEVS = 'Devices'
+JATTR_DEV_IDX = 0
+JATTR_DEV_MODE = 'Mode'
+JATTR_DEV_MODE_MODES = 'modes'
+JATTR_DEV_MODE_OPTIONS = 'options'
+JATTR_DEV_OPERATION = 'Operation'
+JATTR_DEV_OPERATION_POWER = 'power'
+JATTR_DEV_TEMPERATURES = 'Temperatures'
+JATTR_TEMP_MAX = 'maximum'
+JATTR_TEMP_MIN = 'minimum'
+JATTR_TEMP_CURRENT = 'current'
+JATTR_TEMP_DESIRED = 'desired'
+JATTR_TEMP_UNIT = 'unit'
+JATTR_MODE_IDX_SPECIAL = 0
+JATTR_MODE_IDX_GOOD_SLEEP = 1
+JATTR_MODE_IDX_CLEAN = 2
+JATTR_MODE_IDX_PURIFY = 3
+JATTR_MODE_IDX_BEEP = 14
+JATTR_DEV_WIND = 'Wind'
+JATTR_WIND_DIRECTION = 'direction'
+JATTR_WIND_SPEEDLEVEL = 'speedLevel'
+JATTR_WIND_MAX_SPEEDLEVEL = 'maxSpeedLevel'
+
 DEFAULT_SAMSUNG_TEMP_MIN = 16
 DEFAULT_SAMSUNG_TEMP_MAX = 32
 
@@ -341,9 +367,9 @@ class SamsungRacController:
         self.is_on = False
         self.extra_headers = { 'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json' }
         self.config[TEMPERATURE_UNIT] = temp_unit if temp_unit in UNIT_MAP else DEFAULT_CONF_TEMP_UNIT
-        self.custom_flags = DEFAULT_SAMSUNG_SUPPORT_FLAGS
+        self.config[ATTR_NAME] = DEFAULT_CONF_NAME
 
-    def convert_device_state_to_ha_state(self, op, state):
+    def convert_state_rac_to_ha(self, op, state):
         if op in DEVICE_STATE_TO_HA and state in DEVICE_STATE_TO_HA[op]:
             return DEVICE_STATE_TO_HA[op][state]
 
@@ -398,99 +424,146 @@ class SamsungRacController:
         j = self.get_device_json()
         if j is not None:
             _LOGGER.info("samsungrac: initialize: updating device configuration")
-
-            # hardcoded values
+            # check device capabilities
+            custom_flags = 0;
+            flags = 0
             operations_map = {}
-            operations_map[OP_SWING] = AVAILABLE_OPERATIONS_MAP[OP_SWING]
-            operations_map[OP_FAN_MODE] = AVAILABLE_OPERATIONS_MAP[OP_FAN_MODE]
-            operations_map[OP_FAN_MODE_MAX] = AVAILABLE_OPERATIONS_MAP[OP_FAN_MODE_MAX]
-            operations_map[OP_MODE] = AVAILABLE_OPERATIONS_MAP[OP_MODE]
-            operations_map[OP_SPECIAL_MODE] = AVAILABLE_OPERATIONS_MAP[OP_SPECIAL_MODE]
-            operations_map[OP_PURIFY] = AVAILABLE_OPERATIONS_MAP[OP_PURIFY]
-            operations_map[OP_CLEAN] = AVAILABLE_OPERATIONS_MAP[OP_CLEAN]
-            operations_map[OP_BEEP] = AVAILABLE_OPERATIONS_MAP[OP_BEEP]
+            # ['Devices'][0]
+            if JATTR_DEVS in j and len(j[JATTR_DEVS]) > JATTR_DEV_IDX:
+                device = j[JATTR_DEVS][JATTR_DEV_IDX]
+                if ATTR_NAME in device:
+                    self.config[ATTR_NAME] = DEFAULT_CONF_NAME + "_" + device[ATTR_NAME].lower()
+                if ATTR_DESCRIPTION in device:
+                    self.config[ATTR_DESCRIPTION] = device[ATTR_DESCRIPTION]
+
+                # ['Devices'][0]['Mode']
+                if JATTR_DEV_MODE in device:
+                    mode = device[JATTR_DEV_MODE]
+                    # ['Devices'][0]['Mode']['options']
+                    if JATTR_DEV_MODE_OPTIONS in mode:
+                        custom_flags |= SUPPORT_CUSTOM_MODES
+                        options = mode[JATTR_DEV_MODE_OPTIONS]
+                        if len(options) > JATTR_MODE_IDX_SPECIAL:
+                            custom_flags |= SUPPORT_OP_SPECIAL_MODE
+                            operations_map[OP_SPECIAL_MODE] = AVAILABLE_OPERATIONS_MAP[OP_SPECIAL_MODE]
+                        if len(options) > JATTR_MODE_IDX_GOOD_SLEEP:
+                            custom_flags |= SUPPORT_OP_GOOD_SLEEP
+                            operations_map[OP_GOOD_SLEEP] = AVAILABLE_COMMANDS_MAP[OP_GOOD_SLEEP]
+                        if len(options) > JATTR_MODE_IDX_CLEAN:
+                            custom_flags |= SUPPORT_OP_CLEAN
+                            operations_map[OP_CLEAN] = AVAILABLE_OPERATIONS_MAP[OP_CLEAN]
+                        if len(options) > JATTR_MODE_IDX_PURIFY:
+                            custom_flags |= SUPPORT_OP_PURIFY
+                            operations_map[OP_PURIFY] = AVAILABLE_OPERATIONS_MAP[OP_PURIFY]
+                        if len(options) > JATTR_MODE_IDX_BEEP:
+                            custom_flags |= SUPPORT_OP_BEEP
+                            operations_map[OP_BEEP] = AVAILABLE_OPERATIONS_MAP[OP_BEEP]
+
+                    # ['Devices'][0]['Mode']['modes']
+                    if JATTR_DEV_MODE_MODES in mode:
+                        operations_map[OP_MODE] = AVAILABLE_OPERATIONS_MAP[OP_MODE]
+                        flags |= SUPPORT_OPERATION_MODE
+
+                #['Devices'][0]['Operation']
+                if JATTR_DEV_OPERATION in device:
+                    operation = device[JATTR_DEV_OPERATION]
+                    if JATTR_DEV_OPERATION_POWER in operation:
+                        flags |= SUPPORT_ON_OFF
+                        operations_map[OP_POWER] = AVAILABLE_OPERATIONS_MAP[OP_POWER]
             
+                #['Devices'][0]['Temperatures'][0]
+                if JATTR_DEV_TEMPERATURES in device and len(device[JATTR_DEV_TEMPERATURES]) > JATTR_DEV_IDX:
+                    custom_flags |= SUPPORT_TEMPERATURES
+                    temperatures = device[JATTR_DEV_TEMPERATURES][JATTR_DEV_IDX]
+                    if JATTR_TEMP_MAX in temperatures:
+                        flags |= SUPPORT_TARGET_TEMPERATURE_HIGH
+                    if JATTR_TEMP_MIN in temperatures:
+                        flags |= SUPPORT_TARGET_TEMPERATURE_LOW
+                    if JATTR_TEMP_DESIRED in temperatures:
+                        flags |= SUPPORT_TARGET_TEMPERATURE
+                    if JATTR_TEMP_UNIT in temperatures:
+                        temp_unit = temperatures[JATTR_TEMP_UNIT]
+                        if temp_unit in UNIT_MAP[temp_unit]:
+                            self.config[TEMPERATURE_UNIT] = temp_unit
+
+                #['Devices'][0]['Wind']
+                if JATTR_DEV_WIND in device:
+                    custom_flags |= SUPPORT_WIND
+                    wind = device[JATTR_DEV_WIND]
+                    if JATTR_WIND_DIRECTION in wind:
+                        custom_flags |= SUPPORT_SWING_MODE
+                        operations_map[OP_SWING] = AVAILABLE_OPERATIONS_MAP[OP_SWING]
+                    if JATTR_WIND_SPEEDLEVEL in wind:
+                        operations_map[OP_FAN_MODE] = AVAILABLE_OPERATIONS_MAP[OP_FAN_MODE]
+                        custom_flags |= SUPPORT_FAN_MODE
+                    if JATTR_WIND_MAX_SPEEDLEVEL in wind:
+                        custom_flags |= SUPPORT_OP_FAN_MODE_MAX
+                        operations_map[OP_FAN_MODE_MAX] = AVAILABLE_OPERATIONS_MAP[OP_FAN_MODE_MAX]
+
             self.config[LIST_OPERATION] = operations_map
             
             # values read from device
-            self.config[ATTR_DESCRIPTION] = j['Devices'][0]['description']
-            self.config[SUPPORTED_FEATURES] = DEFAULT_SUPPORT_FLAGS
-
-            dev_name = j['Devices'][0]['name']
-            if dev_name:
-                self.config[ATTR_NAME] = DEFAULT_CONF_NAME + "_" + dev_name.lower()
-            else:
-                self.config[ATTR_NAME] = DEFAULT_CONF_NAME
-
-            temp_unit = j['Devices'][0]['Temperatures'][0]['unit']
-            if temp_unit in UNIT_MAP[temp_unit]:
-                self.config[TEMPERATURE_UNIT] = temp_unit
+            self.config[SUPPORTED_FEATURES] = flags
+            self.config[SUPPORTED_CUSTOM_FEATURES] = custom_flags
             
             # read device state
+            _LOGGER.info("samsungrac: initialize: read device configuration, flags: {}, custom flags: {}".format(flags, custom_flags))
             self.update_state_from_json(j)
 
         _LOGGER.info("samsungrac: initialize: finished")
 
     def update_state_from_json(self, j):
-        self.state[ATTR_OPERATION_MODE] = self.convert_device_state_to_ha_state(
-            OP_MODE, j['Devices'][0]['Mode']['modes'][0])
+        custom_flags = self.config[SUPPORTED_CUSTOM_FEATURES]
+        flags = self.config[SUPPORTED_FEATURES]
         
-        self.state[ATTR_POWER] = self.convert_device_state_to_ha_state(
-            OP_POWER, j['Devices'][0]['Operation']['power'])
-        
-        self.state[ATTR_OPTIONS] = j['Devices'][0]['Mode']['options']
-        
-        supported_features = self.get_config(SUPPORTED_FEATURES)
-        
-        if supported_features & SUPPORT_TARGET_TEMPERATURE_HIGH:
-            self.state[ATTR_TARGET_TEMP_HIGH] = self.convert_device_state_to_ha_state(
-                OP_TEMP_MAX, j['Devices'][0]['Temperatures'][0]['maximum'])
+        # ['Devices'][0]
+        device = j[JATTR_DEVS][JATTR_DEV_IDX]
+        if custom_flags & SUPPORT_CUSTOM_MODES:
+            # ['Devices'][0]['Mode']
+            mode = device[JATTR_DEV_MODE]
+            # ['Devices'][0]['Mode']['options']
+            options = mode[JATTR_DEV_MODE_OPTIONS]
+            self.state[ATTR_OPTIONS] = options
+            if custom_flags & SUPPORT_OP_SPECIAL_MODE:
+                self.state[ATTR_OP_SPECIAL_MODE] = self.convert_state_rac_to_ha(OP_SPECIAL_MODE, options[JATTR_MODE_IDX_SPECIAL])
+            if custom_flags & SUPPORT_OP_GOOD_SLEEP:
+                self.state[ATTR_OP_GOOD_SLEEP] = self.convert_state_rac_to_ha(OP_GOOD_SLEEP, options[JATTR_MODE_IDX_GOOD_SLEEP])
+            if custom_flags & SUPPORT_OP_CLEAN:
+                self.state[ATTR_OP_CLEAN] = self.convert_state_rac_to_ha(OP_CLEAN, options[JATTR_MODE_IDX_CLEAN])
+            if custom_flags & SUPPORT_OP_PURIFY:
+                self.state[ATTR_OP_PURIFY] = self.convert_state_rac_to_ha(OP_PURIFY, options[JATTR_MODE_IDX_PURIFY])
+            if custom_flags & SUPPORT_OP_BEEP:
+                self.state[ATTR_OP_BEEP] = self.convert_state_rac_to_ha(OP_BEEP, options[JATTR_MODE_IDX_BEEP])
 
-        if supported_features & SUPPORT_TARGET_TEMPERATURE_LOW:
-            self.state[ATTR_TARGET_TEMP_LOW] = self.convert_device_state_to_ha_state(
-                OP_TEMP_MIN, j['Devices'][0]['Temperatures'][0]['minimum'])
+            # ['Devices'][0]['Mode']['modes']
+            if flags & SUPPORT_OPERATION_MODE:
+                self.state[ATTR_OPERATION_MODE] = self.convert_state_rac_to_ha(OP_MODE, mode[JATTR_DEV_MODE_MODES][JATTR_DEV_IDX])
 
-        self.state[ATTR_CURRENT_TEMPERATURE] = self.convert_device_state_to_ha_state(
-            OP_TARGET_TEMP, j['Devices'][0]['Temperatures'][0]['current'])
+        #['Devices'][0]['Operation']
+        if flags & SUPPORT_ON_OFF:
+            self.state[ATTR_POWER] = self.convert_state_rac_to_ha(OP_POWER, device[JATTR_DEV_OPERATION][JATTR_DEV_OPERATION_POWER])
+            self.is_on = self.state[ATTR_POWER] == STATE_ON
 
-        self.state[ATTR_TEMPERATURE] = self.convert_device_state_to_ha_state(
-            OP_TARGET_TEMP, j['Devices'][0]['Temperatures'][0]['desired'])
-        
-        if self.custom_flags & SUPPORT_OP_SPECIAL_MODE:
-            self.state[ATTR_OP_SPECIAL_MODE] = self.convert_device_state_to_ha_state(
-                OP_SPECIAL_MODE, j['Devices'][0]['Mode']['options'][0])
-        
-        if self.custom_flags & SUPPORT_OP_PURIFY:
-            self.state[ATTR_OP_PURIFY] = self.convert_device_state_to_ha_state(
-                OP_PURIFY, j['Devices'][0]['Mode']['options'][3])
-        
-        if self.custom_flags & SUPPORT_OP_CLEAN:
-            self.state[ATTR_OP_CLEAN] = self.convert_device_state_to_ha_state(
-                OP_CLEAN, j['Devices'][0]['Mode']['options'][2])
+        #['Devices'][0]['Temperatures'][0]
+        if custom_flags & SUPPORT_TEMPERATURES:
+            temperatures = device[JATTR_DEV_TEMPERATURES][JATTR_DEV_IDX]
+            self.state[ATTR_CURRENT_TEMPERATURE] = self.convert_state_rac_to_ha(OP_TARGET_TEMP, temperatures[JATTR_TEMP_CURRENT])
+            if flags & SUPPORT_TARGET_TEMPERATURE_HIGH:
+                self.state[ATTR_TARGET_TEMP_HIGH] = self.convert_state_rac_to_ha(OP_TEMP_MAX, temperatures[JATTR_TEMP_MAX])
+            if flags & SUPPORT_TARGET_TEMPERATURE_LOW:
+                self.state[ATTR_TARGET_TEMP_LOW] = self.convert_state_rac_to_ha(OP_TEMP_MIN, temperatures[JATTR_TEMP_MIN])
+            if flags & SUPPORT_TARGET_TEMPERATURE:
+                self.state[ATTR_TEMPERATURE] = self.convert_state_rac_to_ha(OP_TARGET_TEMP, temperatures[JATTR_TEMP_DESIRED])
 
-        if supported_features & SUPPORT_SWING_MODE:        
-            self.state[ATTR_SWING_MODE] = self.convert_device_state_to_ha_state(
-                OP_SWING, j['Devices'][0]['Wind']['direction'])
-        
-        if supported_features & SUPPORT_FAN_MODE:
-            self.state[ATTR_FAN_MODE] = self.convert_device_state_to_ha_state(
-                OP_FAN_MODE, j['Devices'][0]['Wind']['speedLevel'])
-        
-        if self.custom_flags & SUPPORT_OP_FAN_MODE_MAX:
-            self.state[ATTR_FAN_MODE_MAX] = self.convert_device_state_to_ha_state(
-                OP_FAN_MODE_MAX, j['Devices'][0]['Wind']['maxSpeedLevel'])
-        
-        if self.custom_flags & SUPPORT_OP_GOOD_SLEEP:
-            self.state[ATTR_OP_GOOD_SLEEP] = self.convert_device_state_to_ha_state(
-                OP_GOOD_SLEEP, j['Devices'][0]['Mode']['options'][1])
-
-        self.is_on = self.state[ATTR_POWER] == STATE_ON
-
-        if self.custom_flags & SUPPORT_OP_BEEP:
-            self.state[ATTR_OP_BEEP] = self.convert_device_state_to_ha_state(
-                OP_BEEP, j['Devices'][0]['Mode']['options'][14])
-        
-
+        #['Devices'][0]['Wind']
+        if custom_flags & SUPPORT_WIND:
+            wind = device[JATTR_DEV_WIND]
+            if custom_flags & SUPPORT_SWING_MODE:
+                self.state[ATTR_SWING_MODE] = self.convert_state_rac_to_ha(OP_SWING, wind[JATTR_WIND_DIRECTION])                    
+            if custom_flags & SUPPORT_FAN_MODE:
+                self.state[ATTR_FAN_MODE] = self.convert_state_rac_to_ha(OP_FAN_MODE, wind[JATTR_WIND_SPEEDLEVEL])
+            if custom_flags & SUPPORT_OP_FAN_MODE_MAX:
+                self.state[ATTR_FAN_MODE_MAX] = self.convert_state_rac_to_ha(OP_FAN_MODE_MAX, wind[JATTR_WIND_MAX_SPEEDLEVEL])
 
     def update_state(self):
         j = self.get_device_json()
@@ -569,8 +642,7 @@ class SamsungRAC(ClimateDevice):
 
     @property
     def supported_features(self):
-        flags = self.rac.get_config(SUPPORTED_FEATURES)
-        return flags if flags else 0
+        return self.rac.get_config(SUPPORTED_FEATURES)
 
     @property
     def min_temp(self):
@@ -591,7 +663,7 @@ class SamsungRAC(ClimateDevice):
     @property
     def state_attributes(self):
         data = super(SamsungRAC, self).state_attributes
-        supported_features = self.rac.custom_flags
+        supported_features = self.rac.get_config(SUPPORTED_CUSTOM_FEATURES)
         config = self.rac.config
         
         if supported_features & SUPPORT_OP_SPECIAL_MODE:
@@ -627,6 +699,7 @@ class SamsungRAC(ClimateDevice):
             if self.rac.get_config(ATTR_DESCRIPTION) is not None:
                 data[ATTR_DESCRIPTION] = self.rac.get_config(ATTR_DESCRIPTION)
 
+        data[ATTR_CUSTOM_FEATURES] = self.rac.get_config(SUPPORTED_CUSTOM_FEATURES)
         return data
 
     @property
