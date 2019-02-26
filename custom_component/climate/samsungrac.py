@@ -20,7 +20,7 @@ from homeassistant.const import (
     CONF_ACCESS_TOKEN, CONF_HOST, CONF_TEMPERATURE_UNIT
 )
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers.config_validation import (PLATFORM_SCHEMA, PLATFORM_SCHEMA_BASE)
+from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.util.temperature import convert as convert_temperature
 from homeassistant.helpers.service import extract_entity_ids
 import homeassistant.helpers.entity_component
