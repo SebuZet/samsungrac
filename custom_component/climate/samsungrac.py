@@ -42,6 +42,8 @@ DEFAULT_CONF_TEMP_UNIT = 'C'
 
 CONF_CERT_FILE = 'cert_file'
 CONF_DEBUG = 'debug'
+CONF_DISABLE_BEEP = 'enable_beep'
+CONF_ENABLE_OFF_MODE = 'extra_off_mode'
 
 LIST_OPERATION = 'op_list'
 LIST_COMMANDS = 'op_cmds_list'
@@ -77,6 +79,7 @@ SUPPORT_OP_CLEAN = 32
 SUPPORT_OP_FAN_MODE_MAX = 64
 SUPPORT_OP_GOOD_SLEEP = 128
 SUPPORT_OP_BEEP = 256
+SUPPORT_EXTRA_MODE_OFF = 512
 
 ATTR_OP_SPECIAL_MODE = 'special_mode'
 ATTR_OP_SPECIAL_MODE_LIST = 'special_list'
@@ -123,7 +126,7 @@ RAC_STATE_SPECIAL_MODE_OFF = 'Comode_Off'
 RAC_STATE_PURIFY_ON = 'Spi_On'
 RAC_STATE_PURIFY_OFF = 'Spi_Off'
 RAC_STATE_BEEP_ON = 'Volume_100'
-RAC_STATE_BEEP_OFF = 'Volume_0'
+RAC_STATE_BEEP_OFF = 'Volume_Mute'
 RAC_STATE_CLEAN_ON = 'Autoclean_On'
 RAC_STATE_CLEAN_OFF = 'Autoclean_Off'
 RAC_STATE_WIND = 'Wind'
@@ -204,7 +207,7 @@ AVAILABLE_COMMANDS_MAP = {
     OP_GET_INFO : ['/devices/0/information']
 }
 
-AVAILABLE_COMMANDS_REMAP = {
+EXTRA_MODE_OFF_COMMAND_REMAP = {
     OP_MODE : {
         STATE_OFF : OP_POWER, # :-D
     }
@@ -283,6 +286,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_CERT_FILE, default=DEFAULT_CONF_CERT_FILE): cv.string,
     vol.Optional(CONF_TEMPERATURE_UNIT, default=DEFAULT_CONF_TEMP_UNIT): cv.string,
     vol.Optional(CONF_DEBUG, default=False): cv.boolean,
+    vol.Optional(CONF_DISABLE_BEEP, default=False): cv.boolean,
+    vol.Optional(CONF_ENABLE_OFF_MODE, default=False) : cv.boolean,
 })
 
 ATTR_CUSTOM_ATTRIBUTE = 'mode'
@@ -313,13 +318,19 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     cert_file = config.get(CONF_CERT_FILE)
     temp_unit = config.get(CONF_TEMPERATURE_UNIT)
     debug = config.get(CONF_DEBUG)
+    disabled_flags = 0
+    force_flags = 0
+    if config.get(CONF_DISABLE_BEEP):
+        disabled_flags |= SUPPORT_OP_BEEP
+    if config.get(CONF_ENABLE_OFF_MODE):
+        force_flags |= SUPPORT_EXTRA_MODE_OFF
     _LOGGER.setLevel(logging.INFO if debug else logging.ERROR)
     _LOGGER.info("samsungrac: configuration, host: " + host)
     _LOGGER.info("samsungrac: configuration, token: " + token)
     _LOGGER.info("samsungrac: configuration, cert: " + cert_file)
     _LOGGER.info("samsungrac: configuration, unit: " + temp_unit)
     _LOGGER.info("samsungrac: init controller")
-    rac = SamsungRacController(host, token, cert_file, temp_unit, debug)
+    rac = SamsungRacController(host, token, cert_file, temp_unit, debug, disabled_flags, force_flags)
     rac.initialize()
     if not rac.connected:
         _LOGGER.error("samsungrac: platform not ready")
@@ -354,7 +365,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         async_service_handler, schema=SET_CUSTOM_OPERATION_SCHEMA)
 
 class SamsungRacController:
-    def __init__(self, host, token, cert_file, temp_unit, debug):
+    def __init__(self, host, token, cert_file, temp_unit, debug, disabled_flags, force_flags):
         import requests
         _LOGGER.info("samsungrac: create controller")
         self.host = host
@@ -364,7 +375,8 @@ class SamsungRacController:
         self.connected = False
         self.config = {}
         self.state = {}
-        self.is_on = False
+        self.disabled_flags = disabled_flags
+        self.force_flags = force_flags
         self.extra_headers = { 'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json' }
         self.config[TEMPERATURE_UNIT] = temp_unit if temp_unit in UNIT_MAP else DEFAULT_CONF_TEMP_UNIT
         self.config[ATTR_NAME] = DEFAULT_CONF_NAME
@@ -388,17 +400,21 @@ class SamsungRacController:
         return state
 
     def get_device_json(self):
-        import requests, requests.exceptions
+        import requests, warnings
+        from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
         self.connected = False
-#        try:
         cmds = self.get_command_for_operation(OP_GET_STATE, None)
         url  =  cmds[COMMAND_URL] if cmds and len(cmds) > COMMAND_URL else ''
         _LOGGER.info("samsungrac: get_device_json: url: " + self.host + url)
-        resp = requests.get(self.host + url, headers=self.extra_headers, verify=False, cert=self.cert, data=json.dumps({ 'sebu' : 'zet' }))
-        if resp.ok:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+            with requests.sessions.Session() as session:
+                resp = session.request('GET', url=self.host + url, headers=self.extra_headers, verify=False, cert=self.cert, data=json.dumps({ 'sebu' : 'zet' }))
+        if resp is not None and resp.ok:
             _LOGGER.info("samsungrac: get_device_json: parsing response")
-            j = json.loads(resp.text)
+            js = resp.json() 
+            j = js if js else json.loads(resp.text)
             _LOGGER.info("samsungrac: get_device_json: json parsed: " + json.dumps(j))
             self.connected = True
             return j
@@ -406,20 +422,13 @@ class SamsungRacController:
             _LOGGER.error("samsungrac: get_device_json: response error: {}".format(resp.status_code))
             _LOGGER.error("samsungrac: get_device_json: response text: {}".format(resp.text))
 
-#        except requests.exceptions.SSLError:
-#            _LOGGER.error("samsungrac: SSL Error, make sure you have correct cert_file configuration")
-#        except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, exceptions.requests.HTTPError) :
-#           _LOGGER.error("samsungrac: ambiguous exception occurred while connection to AC")
-#        except:
-#           _LOGGER.error("samsungrac: Cos poszlo nie tak!!!!")
-
         return None
 
     def initialize(self):
         _LOGGER.info("samsungrac: initialize")
 
         self.config[LIST_COMMANDS] = AVAILABLE_COMMANDS_MAP
-        self.config[LIST_COMMANDS_REMAP] = AVAILABLE_COMMANDS_REMAP
+        self.config[LIST_COMMANDS_REMAP] = {}
 
         j = self.get_device_json()
         if j is not None:
@@ -448,20 +457,24 @@ class SamsungRacController:
                             operations_map[OP_SPECIAL_MODE] = AVAILABLE_OPERATIONS_MAP[OP_SPECIAL_MODE]
                         if len(options) > JATTR_MODE_IDX_GOOD_SLEEP:
                             custom_flags |= SUPPORT_OP_GOOD_SLEEP
-                            operations_map[OP_GOOD_SLEEP] = AVAILABLE_COMMANDS_MAP[OP_GOOD_SLEEP]
                         if len(options) > JATTR_MODE_IDX_CLEAN:
                             custom_flags |= SUPPORT_OP_CLEAN
                             operations_map[OP_CLEAN] = AVAILABLE_OPERATIONS_MAP[OP_CLEAN]
                         if len(options) > JATTR_MODE_IDX_PURIFY:
                             custom_flags |= SUPPORT_OP_PURIFY
                             operations_map[OP_PURIFY] = AVAILABLE_OPERATIONS_MAP[OP_PURIFY]
-                        if len(options) > JATTR_MODE_IDX_BEEP:
+                        if len(options) > JATTR_MODE_IDX_BEEP and not self.disabled_flags & SUPPORT_OP_BEEP:
                             custom_flags |= SUPPORT_OP_BEEP
                             operations_map[OP_BEEP] = AVAILABLE_OPERATIONS_MAP[OP_BEEP]
 
                     # ['Devices'][0]['Mode']['modes']
                     if JATTR_DEV_MODE_MODES in mode:
-                        operations_map[OP_MODE] = AVAILABLE_OPERATIONS_MAP[OP_MODE]
+                        if (self.force_flags & SUPPORT_EXTRA_MODE_OFF) and not STATE_OFF in AVAILABLE_OPERATIONS_MAP[OP_MODE]:
+                            operations_map[OP_MODE] = [STATE_OFF]
+                            operations_map[OP_MODE].append(AVAILABLE_OPERATIONS_MAP[OP_MODE])
+                            self.config[LIST_COMMANDS_REMAP].append(EXTRA_MODE_OFF_COMMAND_REMAP)
+                        else:
+                            operations_map[OP_MODE] = AVAILABLE_OPERATIONS_MAP[OP_MODE]
                         flags |= SUPPORT_OPERATION_MODE
 
                 #['Devices'][0]['Operation']
@@ -491,11 +504,11 @@ class SamsungRacController:
                     custom_flags |= SUPPORT_WIND
                     wind = device[JATTR_DEV_WIND]
                     if JATTR_WIND_DIRECTION in wind:
-                        custom_flags |= SUPPORT_SWING_MODE
+                        flags |= SUPPORT_SWING_MODE
                         operations_map[OP_SWING] = AVAILABLE_OPERATIONS_MAP[OP_SWING]
                     if JATTR_WIND_SPEEDLEVEL in wind:
                         operations_map[OP_FAN_MODE] = AVAILABLE_OPERATIONS_MAP[OP_FAN_MODE]
-                        custom_flags |= SUPPORT_FAN_MODE
+                        flags |= SUPPORT_FAN_MODE
                     if JATTR_WIND_MAX_SPEEDLEVEL in wind:
                         custom_flags |= SUPPORT_OP_FAN_MODE_MAX
                         operations_map[OP_FAN_MODE_MAX] = AVAILABLE_OPERATIONS_MAP[OP_FAN_MODE_MAX]
@@ -513,6 +526,7 @@ class SamsungRacController:
         _LOGGER.info("samsungrac: initialize: finished")
 
     def update_state_from_json(self, j):
+        _LOGGER.info("samsungrac: update_state_from_json: " + json.dumps(j))
         custom_flags = self.config[SUPPORTED_CUSTOM_FEATURES]
         flags = self.config[SUPPORTED_FEATURES]
         
@@ -542,7 +556,6 @@ class SamsungRacController:
         #['Devices'][0]['Operation']
         if flags & SUPPORT_ON_OFF:
             self.state[ATTR_POWER] = self.convert_state_rac_to_ha(OP_POWER, device[JATTR_DEV_OPERATION][JATTR_DEV_OPERATION_POWER])
-            self.is_on = self.state[ATTR_POWER] == STATE_ON
 
         #['Devices'][0]['Temperatures'][0]
         if custom_flags & SUPPORT_TEMPERATURES:
@@ -558,14 +571,15 @@ class SamsungRacController:
         #['Devices'][0]['Wind']
         if custom_flags & SUPPORT_WIND:
             wind = device[JATTR_DEV_WIND]
-            if custom_flags & SUPPORT_SWING_MODE:
+            if flags & SUPPORT_SWING_MODE:
                 self.state[ATTR_SWING_MODE] = self.convert_state_rac_to_ha(OP_SWING, wind[JATTR_WIND_DIRECTION])                    
-            if custom_flags & SUPPORT_FAN_MODE:
+            if flags & SUPPORT_FAN_MODE:
                 self.state[ATTR_FAN_MODE] = self.convert_state_rac_to_ha(OP_FAN_MODE, wind[JATTR_WIND_SPEEDLEVEL])
             if custom_flags & SUPPORT_OP_FAN_MODE_MAX:
                 self.state[ATTR_FAN_MODE_MAX] = self.convert_state_rac_to_ha(OP_FAN_MODE_MAX, wind[JATTR_WIND_MAX_SPEEDLEVEL])
 
     def update_state(self):
+        _LOGGER.info("samsungrac: update_state")
         j = self.get_device_json()
         if j is not None:
             self.update_state_from_json(j)
@@ -587,8 +601,9 @@ class SamsungRacController:
         _LOGGER.error("samsungrac: get_command_for_operation, NOT FOUND")
         return None
 
-    def execute_operation_command(self, op, val, update_state=True):
-        import requests
+    def execute_operation_command(self, op, val):
+        import requests, warnings
+        from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
         _LOGGER.info("samsungrac: execute_operation_command({}, {})".format(op, val))
         org_op = op
@@ -599,27 +614,25 @@ class SamsungRacController:
             url = cmd[COMMAND_URL]
         if command is not None:        
             command = command.format(left_bracket="{", right_bracket="}", value=self.convert_ha_state_to_device_state(op, val))
-            try:
-                url = self.host + (url if url else '')
-                _LOGGER.info("samsungrac: execute_operation_command, exe {}, at {}".format(command, url))
-                resp = requests.put(url, headers = self.extra_headers, verify=False, cert=self.cert, data=command)
-                if resp.ok:
-                    _LOGGER.info("samsungrac: execute_operation_command complited: status code: {}".format(resp.status_code))
-                    if org_op in OP_TO_ATTR_MAP:
-                        self.state[org_op] = val
-                        if update_state:
-                            self.rac.update_state()
-                    return
-                else:
-                    _LOGGER.error("samsungrac: execute_operation_command FAILED: status code: {}".format(resp.status_code))
-                    _LOGGER.error("samsungrac: execute_operation_command FAILED: msg: {}".format(resp.text))
-            except:
-                _LOGGER.error("samsungrac: execute_operation_command: response error: {}".format(resp.status_code))
-                _LOGGER.info("samsungrac: execute_operation_command, formatted op: {}".format(command))
-                return
+            url = self.host + (url if url else '')
+            _LOGGER.info("samsungrac: execute_operation_command, exe {}, at {}".format(command, url))
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+                with requests.sessions.Session() as session:
+                    resp = session.request('PUT', url=url, headers = self.extra_headers, verify=False, cert=self.cert, data=command)
+            #resp = requests.put(url, headers = self.extra_headers, verify=False, cert=self.cert, data=command)
+            if resp is not None and resp.ok:
+                _LOGGER.info("samsungrac: execute_operation_command complited: status code: {}".format(resp.status_code))
+                if org_op in OP_TO_ATTR_MAP:
+                    self.state[org_op] = val
+                return True
+            else:
+                _LOGGER.error("samsungrac: execute_operation_command FAILED: status code: {}".format(resp.status_code))
+                _LOGGER.error("samsungrac: execute_operation_command FAILED: msg: {}".format(resp.text))
+                return False
             
-        _LOGGER.error("samsungrac: execute_operation_command: FAILED: cannot find command")
-        return
+        _LOGGER.error("samsungrac: execute_operation_command: Command not found: ({}, {})".format(op, val))
+        return False
 
     def get_state(self, key):
         return self.state[key] if key in self.state else None
@@ -654,7 +667,7 @@ class SamsungRAC(ClimateDevice):
 
     @property
     def should_poll(self):
-        return True
+        return False
 
     @property
     def name(self):
@@ -662,6 +675,7 @@ class SamsungRAC(ClimateDevice):
 
     @property
     def state_attributes(self):
+        _LOGGER.info("samsungrac: state_attributes")
         data = super(SamsungRAC, self).state_attributes
         supported_features = self.rac.get_config(SUPPORTED_CUSTOM_FEATURES)
         config = self.rac.config
@@ -702,6 +716,10 @@ class SamsungRAC(ClimateDevice):
         data[ATTR_CUSTOM_FEATURES] = self.rac.get_config(SUPPORTED_CUSTOM_FEATURES)
         return data
 
+    async def async_update(self):
+        time.sleep(1.5)
+        self.rac.update_state()
+
     @property
     def temperature_unit(self):
         unit = self.rac.get_config(TEMPERATURE_UNIT)
@@ -732,6 +750,8 @@ class SamsungRAC(ClimateDevice):
         if not self.rac.connected:
             return None
         
+        if (self.rac.force_flags & SUPPORT_EXTRA_MODE_OFF) and not self.is_on:
+            return STATE_OFF
         return self.rac.get_state(ATTR_OPERATION_MODE)
 
     @property
@@ -740,7 +760,7 @@ class SamsungRAC(ClimateDevice):
 
     @property
     def is_on(self):
-        return self.rac.is_on
+        return self.rac.get_state(ATTR_POWER) == STATE_ON
 
     @property
     def current_fan_mode(self):
@@ -752,25 +772,25 @@ class SamsungRAC(ClimateDevice):
 
     def set_temperature(self, **kwargs):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
-            self.rac.execute_operation_command(OP_TARGET_TEMP, int(kwargs.get(ATTR_TEMPERATURE)), False)
+            self.rac.execute_operation_command(OP_TARGET_TEMP, int(kwargs.get(ATTR_TEMPERATURE)))
         if kwargs.get(ATTR_TARGET_TEMP_HIGH) is not None:
-            self.rac.execute_operation_command(OP_TEMP_MAX, int(kwargs.get(ATTR_TARGET_TEMP_HIGH)), False)
+            self.rac.execute_operation_command(OP_TEMP_MAX, int(kwargs.get(ATTR_TARGET_TEMP_HIGH)))
         if kwargs.get(ATTR_TARGET_TEMP_LOW) is not None:
-            self.rac.execute_operation_command(OP_TEMP_MIN, int(kwargs.get(ATTR_TARGET_TEMP_LOW)), False)
-        self.rac.update_state()
-        self.schedule_update_ha_state()
+            self.rac.execute_operation_command(OP_TEMP_MIN, int(kwargs.get(ATTR_TARGET_TEMP_LOW)))
+        self.schedule_update_ha_state(True)
 
     def set_swing_mode(self, swing_mode):
         self.rac.execute_operation_command(OP_SWING, swing_mode)
-        self.schedule_update_ha_state()
+        self.schedule_update_ha_state(True)
 
     def set_fan_mode(self, fan_mode):
         self.rac.execute_operation_command(OP_FAN_MODE, fan_mode)
-        self.schedule_update_ha_state()
+        self.schedule_update_ha_state(True)
 
     def set_operation_mode(self, operation_mode):
+        # self.rac.execute_operation_command(OP_POWER, STATE_ON)
         self.rac.execute_operation_command(OP_MODE, operation_mode)
-        self.schedule_update_ha_state()
+        self.schedule_update_ha_state(True)
 
     @property
     def current_swing_mode(self):
@@ -782,20 +802,35 @@ class SamsungRAC(ClimateDevice):
 
     def turn_on(self):
         self.rac.execute_operation_command(OP_POWER, STATE_ON)
-        self.rac.update_state()
-        self.schedule_update_ha_state()
+        self.schedule_update_ha_state(True)
 
     def turn_off(self):
         self.rac.execute_operation_command(OP_POWER, STATE_OFF)
-        self.schedule_update_ha_state()
+        self.schedule_update_ha_state(True)
 
     def set_custom_operation(self, **kwargs):
         """Set custom device mode to specified value."""
+        # first, turn device on if requested
         for key, value in kwargs.items():
             if key in ATTR_TO_OP_MAP:
                 op = ATTR_TO_OP_MAP[key]
-                self.rac.execute_operation_command(op, value)
-        self.schedule_update_ha_state()
+                if op == OP_POWER and value == STATE_ON:
+                    self.rac.execute_operation_command(op, value)
+
+        for key, value in kwargs.items():
+            if key in ATTR_TO_OP_MAP:
+                op = ATTR_TO_OP_MAP[key]
+                if op != OP_POWER:
+                    self.rac.execute_operation_command(op, value)
+
+        # at the end turn device off if requested
+        for key, value in kwargs.items():
+            if key in ATTR_TO_OP_MAP:
+                op = ATTR_TO_OP_MAP[key]
+                if op == OP_POWER and value == STATE_OFF:
+                    self.rac.execute_operation_command(op, value)
+
+        self.schedule_update_ha_state(True)
 
     def async_set_custom_operation(self, **kwargs):
         """Set custom device mode to specified value."""
