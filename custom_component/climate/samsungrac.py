@@ -178,14 +178,14 @@ DEVICE_STATE_TO_HA = {
 
 HA_STATE_TO_DEVICE = {
     OP_SPECIAL_MODE : { STATE_OFF : RAC_STATE_SPECIAL_MODE_OFF, STATE_SLEEP : RAC_STATE_SLEEP, STATE_SPEED : RAC_STATE_SPEED, STATE_2STEP : RAC_STATE_2STEP, STATE_COMFORT : RAC_STATE_COMFORT, STATE_QUIET : RAC_STATE_QUIET, STATE_SMART : RAC_STATE_SMART },
-    OP_PURIFY : { STATE_OFF : RAC_STATE_PURIFY_OFF, STATE_ON : RAC_STATE_PURIFY_ON },
-    OP_CLEAN : { STATE_OFF : RAC_STATE_CLEAN_OFF, STATE_ON : RAC_STATE_CLEAN_ON },
+    OP_PURIFY : { STATE_OFF : RAC_STATE_PURIFY_OFF, STATE_ON : RAC_STATE_PURIFY_ON, False : RAC_STATE_OFF, True : RAC_STATE_ON },
+    OP_CLEAN : { STATE_OFF : RAC_STATE_CLEAN_OFF, STATE_ON : RAC_STATE_CLEAN_ON, False : RAC_STATE_OFF, True : RAC_STATE_ON },
     OP_MODE : { STATE_OFF : RAC_STATE_OFF, STATE_HEAT : RAC_STATE_HEAT, STATE_COOL : RAC_STATE_COOL, STATE_DRY : RAC_STATE_DRY, STATE_FAN_ONLY : RAC_STATE_WIND, STATE_AUTO : RAC_STATE_AUTO },
     OP_FAN_MODE : { STATE_AUTO : 0, STATE_LOW : 1, STATE_MEDIUM : 2, STATE_HIGH : 3, STATE_TURBO : 4 },
     OP_FAN_MODE_MAX : { STATE_AUTO : 0, STATE_LOW : 1, STATE_MEDIUM : 2, STATE_HIGH : 3, STATE_TURBO : 4 },
     OP_SWING : { STATE_ALL : RAC_STATE_ALL, STATE_UP_DOWN : RAC_STATE_UP_DOWN, STATE_LEFT_RIGHT : RAC_STATE_LEFT_RIGHT, STATE_FIX : RAC_STATE_FIX },
-    OP_POWER : { STATE_OFF : RAC_STATE_OFF, STATE_ON : RAC_STATE_ON },
-    OP_BEEP : { STATE_OFF : RAC_STATE_BEEP_OFF, STATE_ON : RAC_STATE_BEEP_ON },
+    OP_POWER : { STATE_OFF : RAC_STATE_OFF, STATE_ON : RAC_STATE_ON, False : RAC_STATE_OFF, True : RAC_STATE_ON },
+    OP_BEEP : { STATE_OFF : RAC_STATE_BEEP_OFF, STATE_ON : RAC_STATE_BEEP_ON, False : RAC_STATE_OFF, True : RAC_STATE_ON },
 }
 
 AVAILABLE_COMMANDS_MAP = {
@@ -306,6 +306,7 @@ SET_CUSTOM_OPERATION_SCHEMA = vol.Schema({
     vol.Optional(ATTR_SWING_MODE): cv.string,
     vol.Optional(ATTR_POWER): cv.string,
     vol.Optional(ATTR_OP_BEEP) : cv.string,
+    vol.Optional('debug') : cv.boolean,
 })
 
 _LOGGER = logging.getLogger(__name__)
@@ -371,7 +372,7 @@ class SamsungRacController:
         self.host = host
         self.token = token
         self.cert = cert_file
-        self.debug = debug
+        self.set_debug(debug)
         self.connected = False
         self.config = {}
         self.state = {}
@@ -381,6 +382,10 @@ class SamsungRacController:
         self.config[TEMPERATURE_UNIT] = temp_unit if temp_unit in UNIT_MAP else DEFAULT_CONF_TEMP_UNIT
         self.config[ATTR_NAME] = DEFAULT_CONF_NAME
 
+    def set_debug(self, val):
+        self.debug = val
+        _LOGGER.setLevel(logging.INFO if val else logging.ERROR)
+    
     def convert_state_rac_to_ha(self, op, state):
         if op in DEVICE_STATE_TO_HA and state in DEVICE_STATE_TO_HA[op]:
             return DEVICE_STATE_TO_HA[op][state]
@@ -812,6 +817,11 @@ class SamsungRAC(ClimateDevice):
         """Set custom device mode to specified value."""
         # first, turn device on if requested
         for key, value in kwargs.items():
+            if key == 'debug':
+                self.rac.set_debug(value)
+
+        for key, value in kwargs.items():
+            _LOGGER.info("samsungrac: set_custom_operation: {}, {}".format(key, value))
             if key in ATTR_TO_OP_MAP:
                 op = ATTR_TO_OP_MAP[key]
                 if op == OP_POWER and value == STATE_ON:
