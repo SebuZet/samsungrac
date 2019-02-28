@@ -312,7 +312,6 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     _LOGGER.info("samsungrac: async setup platform")
-    logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
     host = config.get(CONF_HOST)
     token = config.get(CONF_ACCESS_TOKEN)
     cert_file = config.get(CONF_CERT_FILE)
@@ -324,6 +323,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         disabled_flags |= SUPPORT_OP_BEEP
     if config.get(CONF_ENABLE_OFF_MODE):
         force_flags |= SUPPORT_EXTRA_MODE_OFF
+    logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
     _LOGGER.setLevel(logging.INFO if debug else logging.ERROR)
     _LOGGER.info("samsungrac: configuration, host: " + host)
     _LOGGER.info("samsungrac: configuration, token: " + token)
