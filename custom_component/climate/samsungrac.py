@@ -314,6 +314,10 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     _LOGGER.info("samsungrac: async setup platform")
     host = config.get(CONF_HOST)
+    if not host.startswith('https://'):
+        if host.startswith('http://'):
+            host = host[7::]
+        host = 'https://' + host
     token = config.get(CONF_ACCESS_TOKEN)
     cert_file = config.get(CONF_CERT_FILE)
     temp_unit = config.get(CONF_TEMPERATURE_UNIT)
