@@ -36,6 +36,8 @@ import asyncio
 
 REQUIREMENTS = ['requests>=2.21.0']
 
+SAMSUNGRAC_VERSION = '1.0.0'
+
 DEFAULT_CONF_CERT_FILE = '/config/custom_components/climate/ac14k_m.pem'
 DEFAULT_CONF_NAME = 'samsung'
 DEFAULT_CONF_TEMP_UNIT = 'C'
@@ -330,6 +332,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         force_flags |= SUPPORT_EXTRA_MODE_OFF
     logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
     _LOGGER.setLevel(logging.INFO if debug else logging.ERROR)
+    _LOGGER.info("samsungrac: version: " + SAMSUNGRAC_VERSION)
     _LOGGER.info("samsungrac: configuration, host: " + host)
     _LOGGER.info("samsungrac: configuration, token: " + token)
     _LOGGER.info("samsungrac: configuration, cert: " + cert_file)
