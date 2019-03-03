@@ -1,10 +1,12 @@
 # Samsung AC device for Home Assistant
 My implementation of ClimateDevice for controlling Samsung AC unit
 
+## WARNING
+Home Assistant (v. 0.89) introduced many changes in components file structure. Since version 1.1.0 this component requires HA in version >= 0.89.
+
 ## Configuration
 1. get your device token ([this](https://community.home-assistant.io/t/samsung-ac/11747/5) is a good place to start)
-1. download file samsungrac.py to \<HASS configuration folder\>/custom_component/climate/
-2. download cert file to \<HASS configuration folder\>/custom_component/climate/
+2. download all files to folder \<HASS configuration folder\>/custom_components/samsungrac/
 3. add configuration section to you configuration.yaml file:
 
 Configuration params:
@@ -24,7 +26,7 @@ climate:
   - platform: samsungrac
     host: https://192.178.1.200:8888
     access_token: axdbYtrsdf
-    cert_file: /config/ac14k_m.pem
+    cert_file: /config/custom_components/samsungrac/ac14k_m.pem
 ```
 ## Functionality
 * turn device on and off
