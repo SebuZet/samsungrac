@@ -1,0 +1,292 @@
+import json
+import homeassistant.helpers.config_validation as cv
+from .yaml_const import (
+    CONFIG_DEVICE_STATUS_TEMPLATE, CONFIG_DEVICE_CONECTION_TEMPLATE, CONFIG_TYPE, 
+    CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_OPERATION_VALUES, CONFIG_DEVICE_OPERATION_VALUE, 
+    CONFIG_DEVICE_OPERATION_NUMBER_MIN, CONFIG_DEVICE_OPERATION_NUMBER_MAX
+    )
+
+from .connection import (Connection)
+
+from homeassistant.const import (
+    STATE_UNKNOWN, STATE_OFF, STATE_ON, 
+)
+
+CLIMATE_IP_PROPERTIES = []
+CLIMATE_IP_STATUS_GETTER = []
+
+PROPERTY_TYPE_MODE = 'list'
+PROPERTY_TYPE_SWITCH = 'switch'
+PROPERTY_TYPE_NUMBER = 'number'
+STATUS_GETTER_JSON = 'json_status'
+
+test_json = {'Devices':[{'Alarms':[{'alarmType':'Device','code':'FilterAlarm','id':'0','triggeredTime':'2019-02-25T08:46:01'}],'ConfigurationLink':{'href':'/devices/0/configuration'},'Diagnosis':{'diagnosisStart':'Ready'},'EnergyConsumption':{'saveLocation':'/files/usage.db'},'InformationLink':{'href':'/devices/0/information'},'Mode':{'modes':['Auto'],'options':['Comode_Off','Sleep_0','Autoclean_Off','Spi_Off','FilterCleanAlarm_0','OutdoorTemp_63','CoolCapa_35','WarmCapa_40','UsagesDB_254','FilterTime_10000','OptionCode_54458','UpdateAllow_0','FilterAlarmTime_500','Function_15','Volume_100'],'supportedModes':['Cool','Dry','Wind','Auto']},'Operation':{'power':'Off'},'Temperatures':[{'current':22.0,'desired':25.0,'id':'0','maximum':30,'minimum':16,'unit':'Celsius'}],'Wind':{'direction':'Fix','maxSpeedLevel':4,'speedLevel':0},'connected':True,'description':'TP6X_RAC_16K','id':'0','name':'RAC','resources':['Alarms','Configuration','Diagnosis','EnergyConsumption','Information','Mode','Operation','Temperatures','Wind'],'type':'Air_Conditioner','uuid':'C0972729-EB73-0000-0000-000000000000'}]}
+
+def register_property(dev_prop):
+    """Decorate a function to register a propery."""
+    CLIMATE_IP_PROPERTIES.append(dev_prop)
+    return dev_prop
+
+def register_status_getter(getter):
+    """Decorate a function to register a status getter."""
+    CLIMATE_IP_STATUS_GETTER.append(getter)
+    return getter
+
+def create_property(name, node, connection_base):
+    for prop in CLIMATE_IP_PROPERTIES:
+        if CONFIG_TYPE in node:
+            if prop.match_type(node[CONFIG_TYPE]):
+                op = prop(name, connection_base)
+                if op.load_from_yaml(node):
+                    return op
+    return None
+
+def create_status_getter(name, node, connection_base):
+    for getter in CLIMATE_IP_STATUS_GETTER:
+        if CONFIG_TYPE in node:
+            if getter.match_type(node[CONFIG_TYPE]):
+                g = getter(name, connection_base)
+                if g.load_from_yaml(node):
+                    return g
+    return None
+
+class DeviceProperty:
+    def __init__(self, name, connection):
+        self._name = name
+        self._value = STATE_UNKNOWN
+        self._connection = connection
+        self._status_template = None
+        self._id = name
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def config_validation_type(self):
+        return cv.string
+
+    @property
+    def status_template(self):
+        return self._status_template
+
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def name(self):
+        return self._name
+
+    def get_connection(self, value):
+        return self._connection
+
+    def load_from_yaml(self, node):
+        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
+        from jinja2 import Template
+        if node is not None:
+            if CONFIG_DEVICE_STATUS_TEMPLATE in node:
+                self._status_template = Template(node[CONFIG_DEVICE_STATUS_TEMPLATE])
+            self._connection = self._connection.create_updated(node.get(CONFIG_DEVICE_CONNECTION, {}))
+            return True
+        return False
+
+    def convert_dev_to_hass(self, dev_value):
+        """Convert device state value to HASS."""
+        return dev_value
+    
+    def update_state(self, device_state, debug):
+        """Update property from device state."""
+        v = STATE_UNKNOWN
+        if self.status_template is not None and device_state is not None:
+            v = self.status_template.render(device_state=device_state)
+        self._value = self.convert_dev_to_hass(v)
+ 
+    @property
+    def state_attributes(self):
+        """Return dictionary with property attributes."""
+        return { self.id : self.value }
+
+@register_status_getter
+class GetJsonStatus(DeviceProperty):
+    def __init__(self, name, connection):
+        super(GetJsonStatus, self).__init__(name, connection)
+
+    @staticmethod
+    def match_type(type):
+        return type == STATUS_GETTER_JSON
+
+    def update_state(self, device_state, debug):
+        device_state = self.get_connection(None).execute(None, None)
+        self._value = device_state
+        if self.status_template is not None and device_state is not None:
+            v = self.status_template.render(device_state=device_state)
+            v = v.replace("'", '"')
+            v = v.replace("True", '"True"')
+            self._value = json.loads(v)
+
+class DeviceOperation(DeviceProperty):
+    def __init__(self, name, connection):
+        super(DeviceOperation, self).__init__(name, connection)
+        self._connection_template = None
+
+    @property
+    def connection_template(self):
+        return self._connection_template
+
+    def load_from_yaml(self, node):
+        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
+        if super(DeviceOperation, self).load_from_yaml(node):
+            from jinja2 import Template
+            if node is not None:
+                if CONFIG_DEVICE_CONECTION_TEMPLATE in node:
+                    self._connection_template = Template(node[CONFIG_DEVICE_CONECTION_TEMPLATE])
+                return True
+        return False
+
+    def set_value(self, v):
+        """Set device property value."""
+        resp = self.get_connection(v).execute(self.connection_template, self.convert_hass_to_dev(v))
+        return resp is not None
+
+    def match_value(self, value):
+        """Check if value match to operation. True if value is correct."""
+        return False
+
+    def convert_hass_to_dev(self, hass_value):
+        """Convert HASS state value to device state."""
+        return hass_value
+
+class BasicDeviceOperation(DeviceOperation):
+    def __init__(self, name, connection):
+        super(BasicDeviceOperation, self).__init__(name, connection)
+        self._values_dev_to_ha_map = {}
+        self._values_ha_to_dev_map = {}
+        self._values = []
+        self._value_connections_map = {}
+
+    def get_connection(self, value):
+        return self._value_connections_map.get(value, self._connection)
+
+    def load_from_yaml(self, node):
+        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
+        if super(BasicDeviceOperation, self).load_from_yaml(node):
+            if node is not None:
+                node_values = node.get(CONFIG_DEVICE_OPERATION_VALUES, {})
+                if len(node_values) == 0:
+                    return False
+                
+                for ha_value in node_values.keys():
+                    node_value = node_values[ha_value]
+                    r = self._connection.create_updated(node_value.get(CONFIG_DEVICE_CONNECTION, {}))
+                    self._value_connections_map[ha_value] = r
+                    self._values.append(ha_value)
+                    if CONFIG_DEVICE_OPERATION_VALUE in node_value:
+                        dev_value = node_value[CONFIG_DEVICE_OPERATION_VALUE]
+                        self._values_dev_to_ha_map[dev_value] = ha_value
+                        self._values_ha_to_dev_map[ha_value] = dev_value
+                
+                return True
+        return False
+
+    @property
+    def values(self):
+        return self._values
+
+    def match_value(self, value):
+        """Check if value match to operation. True if value is correct."""
+        return value in self._values_ha_to_dev_map  
+
+    def convert_dev_to_hass(self, dev_value):
+        """Convert device state value to HASS."""
+        return self._values_dev_to_ha_map.get(dev_value, dev_value)
+    
+    def convert_hass_to_dev(self, ha_value):
+        """Convert HASS state value to device state."""
+        return self._values_ha_to_dev_map.get(ha_value, ha_value)
+
+@register_property
+class ModeOperation(BasicDeviceOperation):
+    def __init__(self, name, connection):
+        super(ModeOperation, self).__init__(name, connection)
+        self._id = name + '_mode'
+ 
+    @staticmethod
+    def match_type(type):
+        return type == PROPERTY_TYPE_MODE
+
+    @property
+    def state_attributes(self):
+        """Return dictionary with property attributes."""
+        data = {}
+        data[self.id] = self.value
+        data[self.name + '_list'] = self.values
+        return data
+
+@register_property
+class SwitchOperation(BasicDeviceOperation):
+    def __init__(self, name, connection):
+        super(SwitchOperation, self).__init__(name, connection)
+ 
+    @staticmethod
+    def match_type(type):
+        return type == PROPERTY_TYPE_SWITCH
+
+    def load_from_yaml(self, node):
+        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
+        if super(SwitchOperation, self).load_from_yaml(node):
+            if STATE_OFF in self._values_ha_to_dev_map:
+                self._values_ha_to_dev_map[False] = self._values_ha_to_dev_map[STATE_OFF]
+            if STATE_ON in self._values_ha_to_dev_map:
+                self._values_ha_to_dev_map[True] = self._values_ha_to_dev_map[STATE_ON]
+            return True
+
+        return False
+
+@register_property
+class NumericOperation(DeviceOperation):
+    def __init__(self, name, connection):
+        super(NumericOperation, self).__init__(name, connection)
+        self._min = None
+        self._max = None
+        self._value = 0.0
+ 
+    @staticmethod
+    def match_type(type):
+        return type == PROPERTY_TYPE_NUMBER
+
+    @property
+    def value(self):
+        return float(self._value)
+
+    @property
+    def config_validation_type(self):
+        return cv.positive_int
+
+    def match_value(self, value):
+        """Check if value match to operation. True if value is correct."""
+        try:
+            return self.convert_hass_to_dev(float(value)) == value
+        except ValueError:
+            return False
+    
+    def load_from_yaml(self, node):
+        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
+        if not super(NumericOperation, self).load_from_yaml(node):
+            return False
+
+        if node is not None:
+            self._min = node.get(CONFIG_DEVICE_OPERATION_NUMBER_MIN, None)
+            self._max = node.get(CONFIG_DEVICE_OPERATION_NUMBER_MAX, None)
+            return True
+
+        return False
+
+    def convert_hass_to_dev(self, hass_value):
+        """Convert HASS state value to device state."""
+        if self._min is not None and hass_value < self._min:
+            return self._min
+        if self._max is not None and hass_value > self._max:
+            return self._max
+        
+        return hass_value

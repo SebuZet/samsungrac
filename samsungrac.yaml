@@ -1,0 +1,145 @@
+device:
+  name: 'samsungrac'
+  connection:
+    type: request
+    request: 
+      verify: False
+      cert: "/Users/sebu/.homeassistant/custom_components/climate_ip/ac14k_m.pem"
+      headers: { "Authorization": "Bearer __TOKEN__", "Content-Type": "application/json" }
+  status:
+    type: 'json_status'
+    connection:
+      request: { method : 'GET', url: 'https://__IP__ADDRESS__:8888/devices' }
+    status_template: '{{ device_state.Devices.0 }}'
+    #status_template: '{{ device_state }}'
+  operations:
+    operation: # operation_mode
+      type: list
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/mode' }
+      values: 
+        cool: { value : 'Cool', connection: { request: { json: { "modes": ["Cool"] } } } }
+        heat: { value : 'Heat', connection: { request: { json: { "modes": ["Heat"] } } } }
+        dry: { value : 'Dry', connection: { request: { json: { "modes": ["Dry"] } } } }
+        fan_only: { value : 'Wind', connection: { request: { json: { "modes": ["Wind"] } } } }
+        auto: { value : 'Auto', connection: { request: { json: { "modes": ["Auto"] } } } }
+      status_template: '{{ device_state.Mode.modes.0 }}'
+    power:
+      type: switch
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0' }
+      values:
+        'off': { value: 'Off', connection: { request: { json: { "Operation": { "power" : "Off" } } } } }
+        'on': { value: 'On', connection: { request: { json: { "Operation": { "power" : "On" } } } } }
+      status_template: '{{ device_state.Operation.power }}'
+    purify:
+      type: switch
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/mode' }
+      values:
+        'off': { value: 'Spi_Off', connection: { request: { json: { "options": [ "Spi_Off"] } } } }
+        'on': { value: 'Spi_On', connection: { request: { json: { "options": [ "Spi_On"] } } } }
+      status_template: '{{ device_state.Mode.options.3 }}'
+    auto_clean:
+      type: switch
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/mode' }
+      values:
+        'off': { value: 'Autoclean_Off', connection: { request: { json: { "options": [ "Autoclean_Off"] } } } }
+        'on': { value: 'Autoclean_On', connection: { request: { json: { "options": [ "Autoclean_On"] } } } }
+      status_template: '{{ device_state.Mode.options.2 }}'
+    beep:
+      type: switch
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/mode' }
+      values:
+        'off': { value: 'Volume_Mute', connection: { request: { json: { "options": [ "Volume_Mute"] } } } }
+        'on': { value: 'Volume_100', connection: { request: { json: { "options": [ "Volume_100"] } } } }
+      status_template: '{{ device_state.Mode.options.14 }}'
+    special: # special_mode
+      type: list
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/mode' }
+      values: 
+        'off': { value : 'Comode_Off', connection: { request: { json: { "options": ["Comode_Off"] } } } }
+        'sleep': { value : 'Comode_Sleep', connection: { request: { json: { "options": ["Comode_Sleep"] } } } }
+        'speed': { value : 'Comode_Speed', connection: { request: { json: { "options": ["Comode_Speed"] } } } }
+        '2step': { value : 'Comode_2Step', connection: { request: { json: { "options": ["Comode_2Step"] } } } }
+        'comfort': { value : 'Comode_Comfort', connection: { request: { json: { "options": ["Comode_Comfort"] } } } }
+        'quiet': { value : 'Comode_Quiet', connection: { request: { json: { "options": ["Comode_Quiet"] } } } }
+        'smart': { value : 'Comode_Smart', connection: { request: { json: { "options": ["Comode_Smart"] } } } }
+      status_template: '{{ device_state.Mode.options.0 }}'
+    fan: # fan_mode
+      type: list
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/wind' }
+      values: 
+        'auto': { value : '0', connection: { request: { json: { "speedLevel": 0 } } } }
+        'low': { value : '1', connection: { request: { json: { "speedLevel": 1 } } } }
+        'medium': { value : '2', connection: { request: { json: { "speedLevel": 2 } } } }
+        'high': { value : '3', connection: { request: { json: { "speedLevel": 3 } } } }
+        'turbo': { value : '4', connection: { request: { json: { "speedLevel": 4 } } } }
+      status_template: '{{ device_state.Wind.speedLevel }}'
+    fan_max: # fan_max_mode
+      type: list
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/wind' }
+      values: 
+        'auto': { value : '0', connection: { request: { json: { "maxSpeedLevel": 0 } } } }
+        'low': { value : '1', connection: { request: { json: { "maxSpeedLevel": 1 } } } }
+        'medium': { value : '2', connection: { request: { json: { "maxSpeedLevel": 2 } } } }
+        'high': { value : '3', connection: { request: { json: { "maxSpeedLevel": 3 } } } }
+        'turbo': { value : '4', connection: { request: { json: { "maxSpeedLevel": 4 } } } }
+      status_template: '{{ device_state.Wind.maxSpeedLevel }}'
+    swing: # swing_mode
+      type: list
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/wind' }
+      values: 
+        'fixed': { value : "Fix", connection: { request: { json: { "direction": "Fix" } } } }
+        'up_down': { value : "Up_And_Low", connection: { request: { json: { "direction": "Up_And_Low" } } } }
+        'left_right': { value : "Left_And_Right", connection: { request: { json: { "direction": "Left_And_Right" } } } }
+        'all': { value : "All", connection: { request: { json: { "direction": "All" } } } }
+      status_template: '{{ device_state.Wind.direction }}'
+    good_sleep:
+      type: number
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/mode'  }
+      min: 0
+      max: 24
+      status_template: '{{ device_state.Mode.options.1[6::] }}'
+      connection_template: '{ "json": { "options": ["Sleep_{{ value | int }}"] } }'
+    temperature:
+      type: number
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/temperatures/0' }
+      min: 16
+      max: 32
+      status_template: '{{ device_state.Temperatures.0.desired | int }}'
+      connection_template: '{ "json": { "desired": {{ value | int }} } }'
+    target_temp_high:
+      type: number
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/temperatures/0' }
+      min: 16
+      max: 32
+      status_template: '{{ device_state.Temperatures.0.maximum | int }}'
+      connection_template: '{ "json": { "maximum": {{ value | int }} } }'
+    target_temp_low:
+      type: number
+      connection:
+        request: { method: 'PUT', url: 'https://__IP__ADDRESS__:8888/devices/0/temperatures/0' }
+      min: 16
+      max: 32
+      status_template: '{{ device_state.Temperatures.0.minimum | int }}'
+      connection_template: '{ "json": { "minimum": {{ value | int }} } }'
+  attributes:
+    current_temperature:
+      type: number
+      status_template: '{{ device_state.Temperatures.0.current }}'
+    min_temp:
+      type: number
+      status_template: '16'
+    max_temp:
+      type: number
+      status_template: '32'
