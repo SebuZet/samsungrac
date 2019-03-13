@@ -33,7 +33,7 @@ class ConnectionSamsung2878(Connection):
             sslContext.set_ciphers("HIGH:!DH:!aNULL")
             sslContext.check_hostname = False
             sslContext.verify_mode = ssl.CERT_NONE
-            return sslContext.wrap_socket(sock, server_side=False, server_hostname=HOST)
+            return sslContext.wrap_socket(sock, server_side=False, server_hostname=self._host)
         except ssl.SSLError:
             self.logger.error("wrap socket failed!")
             self.logger.error(traceback.format_exc())
