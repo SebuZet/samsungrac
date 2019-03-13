@@ -48,7 +48,7 @@ CONF_CERT_FILE = 'cert_file'
 CONF_DEBUG = 'debug'
 CONF_CONTROLLER = 'controller'
 
-REQUIREMENTS = ['requests>=2.21.0']
+REQUIREMENTS = ['requests>=2.21.0', 'xmljson>=0.2.0']
 
 CLIMATE_IP_DATA = 'climate_ip_data'
 ENTITIES = 'entities'

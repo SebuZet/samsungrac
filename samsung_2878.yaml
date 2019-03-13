@@ -1,0 +1,95 @@
+device:
+  name: 'samsungac'
+  connection:
+    type: samsung_2878
+    params: 
+      port: 2878
+      cert: "/config/custom_components/climate_ip/ac14k_m.pem"
+      host: "__IP__"
+      token: '__TOKEN__'
+      duid: '__DUID__'
+      connection_template: '<Request Type="AuthToken"><User Token="{{token}}" /></Request>'
+  status:
+    type: 'json_status'
+    connection_template: '<Request Type="DeviceState" DUID="{{duid}}"></Request>'
+  operations:
+    operation: # operation_mode
+      type: list
+      values: 
+        cool: { value : 'Cool' }
+        heat: { value : 'Heat' }
+        dry: { value : 'Dry' }
+        fan_only: { value : 'Wind' }
+        auto: { value : 'Auto' }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_OPMODE" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_OPMODE" DUID="{{duid}}"><Attr ID="AC_FUN_OPMODE" Value="{{value}}" /></Control></Request>'
+    power: # power
+      type: switch
+      values:
+        'off': { value: 'Off' }
+        'on': { value: 'On' }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_POWER" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_POWER" DUID="{{duid}}"><Attr ID="AC_FUN_POWER" Value="{{value}}" /></Control></Request>'
+    purify:
+      type: switch
+      values:
+        'off': { value: 'Off' }
+        'on': { value: 'On' }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_SPI" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_SPI" DUID="{{duid}}"><Attr ID="AC_ADD_SPI" Value="{{value}}" /></Control></Request>'
+    auto_clean:
+      type: switch
+      values:
+        'off': { value: 'Off' }
+        'on': { value: 'On' }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_AUTOCLEAN" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_AUTOCLEAN" DUID="{{duid}}"><Attr ID="AC_ADD_AUTOCLEAN" Value="{{value}}" /></Control></Request>'
+    special: # special_mode
+      type: list
+      values: 
+        'off': { value : 'Off' }
+        'quiet': { value : 'Quiet' }
+        'sleep': { value : 'Sleep' }
+        'smart': { value : 'Smart' }
+        'softcontrol': { value : 'SoftCool' }
+        'wind1': { value : 'WindMode1' }
+        'wind2': { value : 'WindMode2' }
+        'wind3': { value : 'WindMode3' }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_COMODE" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
+    fan: # fan_mode
+      type: list
+      values: 
+        'auto': { value : 'Auto' }
+        'low': { value : 'Low' }
+        'mid': { value : 'Mid' }
+        'high': { value : 'High' }
+        'turbo': { value : 'Turbo' }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_WINDLEVEL" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_WINDLEVEL" DUID="{{duid}}"><Attr ID="AC_FUN_WINDLEVEL" Value="{{value}}" /></Control></Request>'
+    swing: # swing_mode
+      type: list
+      values: 
+        'left_right': { value : "SwingLR" }
+        'up_down': { value : "SwingUD" }
+        'fixed': { value : "Fixed" }
+        'all': { value : "Rotation" }
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_DIRECTION" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_DIRECTION" DUID="{{duid}}"><Attr ID="AC_FUN_DIRECTION" Value="{{value}}" /></Control></Request>'
+    temperature:
+      type: number
+      min: 16
+      max: 32
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_TEMPSET" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_TEMPSET" DUID="{{duid}}"><Attr ID="AC_FUN_TEMPSET" Value="{{value}}" /></Control></Request>'
+  attributes:
+    current_temperature:
+      type: number
+      status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_TEMPNOW" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_TEMPNOW" DUID="{{duid}}"><Attr ID="AC_FUN_TEMPNOW" Value="{{value}}" /></Control></Request>'
+    min_temp:
+      type: number
+      status_template: '16'
+    max_temp:
+      type: number
+      status_template: '32'

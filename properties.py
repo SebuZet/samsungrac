@@ -57,6 +57,7 @@ class DeviceProperty:
         self._connection = connection
         self._status_template = None
         self._id = name
+        self._connection_template = None
 
     @property
     def id(self):
@@ -81,12 +82,18 @@ class DeviceProperty:
     def get_connection(self, value):
         return self._connection
 
+    @property
+    def connection_template(self):
+        return self._connection_template
+
     def load_from_yaml(self, node):
         """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
         from jinja2 import Template
         if node is not None:
             if CONFIG_DEVICE_STATUS_TEMPLATE in node:
                 self._status_template = Template(node[CONFIG_DEVICE_STATUS_TEMPLATE])
+            if CONFIG_DEVICE_CONECTION_TEMPLATE in node:
+                self._connection_template = Template(node[CONFIG_DEVICE_CONECTION_TEMPLATE])
             self._connection = self._connection.create_updated(node.get(CONFIG_DEVICE_CONNECTION, {}))
             return True
         return False
@@ -111,6 +118,8 @@ class DeviceProperty:
 class GetJsonStatus(DeviceProperty):
     def __init__(self, name, connection):
         super(GetJsonStatus, self).__init__(name, connection)
+        self._json_status = None
+        self._attrs = {}
 
     @staticmethod
     def match_type(type):
@@ -119,30 +128,26 @@ class GetJsonStatus(DeviceProperty):
     def update_state(self, device_state, debug):
         device_state = self.get_connection(None).execute(None, None)
         self._value = device_state
+        self._json_status = device_state
+        self._attrs = { 'device_state' : json.dumps(device_state) }
         if self.status_template is not None and device_state is not None:
-            v = self.status_template.render(device_state=device_state)
-            v = v.replace("'", '"')
-            v = v.replace("True", '"True"')
-            self._value = json.loads(v)
+            try:
+                v = self.status_template.render(device_state=device_state)
+                v = v.replace("'", '"')
+                v = v.replace("True", '"True"')
+                self._value = json.loads(v)
+            except:
+                self._value = device_state
+
+    @property
+    def state_attributes(self):
+        """Return dictionary with property attributes."""
+        return self._attrs
+
 
 class DeviceOperation(DeviceProperty):
     def __init__(self, name, connection):
         super(DeviceOperation, self).__init__(name, connection)
-        self._connection_template = None
-
-    @property
-    def connection_template(self):
-        return self._connection_template
-
-    def load_from_yaml(self, node):
-        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
-        if super(DeviceOperation, self).load_from_yaml(node):
-            from jinja2 import Template
-            if node is not None:
-                if CONFIG_DEVICE_CONECTION_TEMPLATE in node:
-                    self._connection_template = Template(node[CONFIG_DEVICE_CONECTION_TEMPLATE])
-                return True
-        return False
 
     def set_value(self, v):
         """Set device property value."""
@@ -257,7 +262,12 @@ class NumericOperation(DeviceOperation):
 
     @property
     def value(self):
-        return float(self._value)
+        f = 0
+        try:
+            f = float(self._value)
+        except:
+            f = -1000 
+        return f
 
     @property
     def config_validation_type(self):
