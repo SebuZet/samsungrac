@@ -65,7 +65,7 @@ class YamlController(ClimateController):
         self._name = CONST_CONTROLLER_TYPE
         self._attributes = { 'controller' : self.id }
         self._state_getter = None
-        self._debug = False
+        self._debug = config.get('debug', False)
         self._supported_features = 0
         self._temp_unit = TEMP_CELSIUS
         self._yaml = config.get(CONF_CONFIG_FILE)

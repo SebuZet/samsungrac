@@ -19,15 +19,20 @@ CONST_STATUS_OK_STR = 'Status="Okay"'
 
 xml_test = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="79"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="On"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Cool"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>'
 
+class connection_config():
+    def __init__(self, h, p, t, c):
+        self.host = h
+        self.port = p
+        self.token = t
+        self.duid = None
+        self.cert = None
+
 @register_connection
 class ConnectionSamsung2878(Connection):
     def __init__(self, logger):
         super(ConnectionSamsung2878, self).__init__(logger)
         self._params = {}
-        self._port = 2878
-        self._token = None
-        self._duid = None
-        self._host = None
+        self._cfg = connection_config(None, None, None, None)
         self._connection_init_template = None
         
     def load_from_yaml(self, node, connection_base):
@@ -41,25 +46,21 @@ class ConnectionSamsung2878(Connection):
                 print ("ERROR: missing 'connection_template' parameter in connection section")
                 return False
             if connection_base is None:
-                if CONF_PORT in params_node:
-                    self._port = params_node[CONF_PORT]
-                    self._params[CONF_PORT] = self._port
-                    self.logger.info(self._port)
+                self._cfg.port = params_node.get(CONF_PORT, 2878)
                 if CONF_HOST in params_node:
-                    self._host = params_node[CONF_HOST]
-                    self._params[CONF_HOST] = self._host
+                    self._cfg.host = params_node[CONF_HOST]
                 else:
                     print ("ERROR: missing 'host' parameter in connection section")
                     return False
                 if CONF_TOKEN in params_node:
-                    self._token = params_node[CONF_TOKEN]
-                    self._params[CONF_TOKEN] = self._token
-                    self.logger.info(self._token)
+                    self._cfg.token = params_node[CONF_TOKEN]
+                    self.logger.info(self._cfg.token)
+                    self._params[CONF_TOKEN] = self._cfg.token
                 else:
                     print ("ERROR: missing 'token' parameter in connection section")
                     return False
                 if CONF_CERT in params_node:
-                    self._cert = params_node[CONF_CERT]
+                    self._cfg.cert = params_node[CONF_CERT]
                 else:
                     print ("ERROR: missing 'cert' parameter in connection section")
                     return False
@@ -73,10 +74,7 @@ class ConnectionSamsung2878(Connection):
 
     def create_updated(self, node):
         c = ConnectionSamsung2878(self.logger)
-        c._port = self._port
-        c._token = self._token
-        c._duid = self._duid
-        c._host = self._host
+        c._cfg = self._cfg
         c._connection_init_template = self._connection_init_template
         c.load_from_yaml(node, self)
         return c
@@ -89,9 +87,9 @@ class ConnectionSamsung2878(Connection):
             sslContext.load_verify_locations(cafile = self._cert)
             sslContext.set_ciphers("HIGH:!DH:!aNULL")
             sslContext.load_cert_chain(self._cert)
-            sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = self._host)
+            sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = self._cfg.host)
             if sslSocket is not None:
-                sslSocket.connect((self._host, self._port))
+                sslSocket.connect((self._cfg.host, self._cfg.port))
                 sslSocket.recv(1024) # DRC-1.00
                 sslSocket.recv(1024) # <?xml version="1.0" encoding="utf-8" ?><Update Type="InvalidateAccount"/>
                 sslSocket.send(init_message.encode('utf-8'))
@@ -115,7 +113,7 @@ class ConnectionSamsung2878(Connection):
 
     def execute(self, template, v):
         params = self._params
-        params.update({ 'value' : v})
+        params.update({ 'value' : v, 'duid' : self._cfg.duid })
         init_message = ''
         if self._connection_init_template is not None:
             init_message = self._connection_init_template.render(**params)
@@ -169,14 +167,18 @@ class GetSamsung2878Status(DeviceProperty):
 
         if self._xml_status is not None:
             # get DUID
-            if conn._duid is None:
-                if self._xml_status.find('Status="Okay"') != -1:
+            if conn._cfg.duid is None:
+                if self._xml_status.find(CONST_STATUS_OK_STR) != -1:
                     l = len(CONST_DUID_STR)
                     pos1 = self._xml_status.find(CONST_DUID_STR)
                     if pos1 != -1:
                         pos2 = self._xml_status.find('"', pos1 + l)
                         if pos2 != -1:
-                            conn._duid = self._xml_status[pos1 + l:pos2]
+                            conn._cfg.duid = self._xml_status[pos1 + l:pos2]
+                        else:
+                            conn.logger.error("Cannot find DUID(2) in response")
+                    else:
+                        conn.logger.error("Cannot find DUID(1) in response")
             # convert xml to json
             try:
                 conv = xmljson.Abdera(dict_type=OrderedDict)
@@ -197,6 +199,7 @@ class GetSamsung2878Status(DeviceProperty):
             except:
                 self._value = self._json_status
         self._attrs['device_state'] = self.value
+        self._attrs['duid'] = conn._cfg.duid
 
     @property
     def state_attributes(self):
