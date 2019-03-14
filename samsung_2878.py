@@ -1,0 +1,204 @@
+from .connection import (register_connection, Connection)
+from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_DEVICE_CONECTION_TEMPLATE)
+from .properties import (register_status_getter, DeviceProperty)
+from socket import * 
+import json
+import logging
+import sys
+import ssl
+import traceback
+
+CONNECTION_TYPE_S2878 = 'samsung_2878'
+
+CONF_PORT = 'port'
+CONF_HOST = 'host'
+CONF_TOKEN = 'token'
+CONF_CERT = 'cert'
+CONST_DUID_STR = 'DUID="'
+CONST_STATUS_OK_STR = 'Status="Okay"'
+
+xml_test = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="79"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="On"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Cool"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>'
+
+@register_connection
+class ConnectionSamsung2878(Connection):
+    def __init__(self, logger):
+        super(ConnectionSamsung2878, self).__init__(logger)
+        self._params = {}
+        self._port = 2878
+        self._token = None
+        self._duid = None
+        self._host = None
+        self._connection_init_template = None
+        
+    def load_from_yaml(self, node, connection_base):
+        from jinja2 import Template
+        self._params = {} if connection_base is None else connection_base._params.copy()
+        if node is not None:
+            params_node = node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {})
+            if CONFIG_DEVICE_CONECTION_TEMPLATE in params_node:
+                self._connection_init_template = Template(params_node[CONFIG_DEVICE_CONECTION_TEMPLATE])
+            elif connection_base is None:
+                print ("ERROR: missing 'connection_template' parameter in connection section")
+                return False
+            if connection_base is None:
+                if CONF_PORT in params_node:
+                    self._port = params_node[CONF_PORT]
+                    self._params[CONF_PORT] = self._port
+                    self.logger.info(self._port)
+                if CONF_HOST in params_node:
+                    self._host = params_node[CONF_HOST]
+                    self._params[CONF_HOST] = self._host
+                else:
+                    print ("ERROR: missing 'host' parameter in connection section")
+                    return False
+                if CONF_TOKEN in params_node:
+                    self._token = params_node[CONF_TOKEN]
+                    self._params[CONF_TOKEN] = self._token
+                    self.logger.info(self._token)
+                else:
+                    print ("ERROR: missing 'token' parameter in connection section")
+                    return False
+                if CONF_CERT in params_node:
+                    self._cert = params_node[CONF_CERT]
+                else:
+                    print ("ERROR: missing 'cert' parameter in connection section")
+                    return False
+            self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
+            return True
+        return False
+
+    @staticmethod
+    def match_type(type):
+        return type == CONNECTION_TYPE_S2878
+
+    def create_updated(self, node):
+        c = ConnectionSamsung2878(self.logger)
+        c._port = self._port
+        c._token = self._token
+        c._duid = self._duid
+        c._host = self._host
+        c._connection_init_template = self._connection_init_template
+        c.load_from_yaml(node, self)
+        return c
+
+    def create_socket(self, init_message):
+        sslSocket = None
+        try:
+            sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+            sslContext.verify_mode = ssl.CERT_REQUIRED
+            sslContext.load_verify_locations(cafile = self._cert)
+            sslContext.set_ciphers("HIGH:!DH:!aNULL")
+            sslContext.load_cert_chain(self._cert)
+            sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = self._host)
+            if sslSocket is not None:
+                sslSocket.connect((self._host, self._port))
+                sslSocket.recv(1024) # DRC-1.00
+                sslSocket.recv(1024) # <?xml version="1.0" encoding="utf-8" ?><Update Type="InvalidateAccount"/>
+                sslSocket.send(init_message.encode('utf-8'))
+                reply = sslSocket.recv(4096)
+                if reply is not None:
+                    reply_str = reply.decode("utf-8")
+                    if reply_str.find(CONST_STATUS_OK_STR) != -1:
+                        return sslSocket
+
+        except:
+            self.logger.error('Error creating socket')
+            if sslSocket is not None:
+                sslSocket.shutdown(SHUT_RDWR)
+                sslSocket.close()
+
+        finally:
+            if sslSocket is not None:
+                sslSocket.close()
+
+        return None
+
+    def execute(self, template, v):
+        params = self._params
+        params.update({ 'value' : v})
+        init_message = ''
+        if self._connection_init_template is not None:
+            init_message = self._connection_init_template.render(**params)
+
+        message = v
+        if template is not None:
+            message = template.render(**params)
+
+        sslSocket = self.create_socket(init_message)
+        if sslSocket is not None:
+            try:
+                sslSocket.send(message.encode('utf-8'))
+                xml_string = sslSocket.recv(4096).decode("utf-8")
+                sslSocket.close()
+                return xml_string
+
+            except:
+                self.logger.error('Socket error')
+                if sslSocket is not None:
+                    sslSocket.shutdown(SHUT_RDWR)
+                    sslSocket.close()
+
+            finally:
+                if sslSocket is not None:
+                    sslSocket.close()
+        
+        return None
+
+@register_status_getter
+class GetSamsung2878Status(DeviceProperty):
+    def __init__(self, name, connection):
+        super(GetSamsung2878Status, self).__init__(name, connection)
+        self._json_status = None
+        self._xml_status = None
+        self._attrs = {}
+
+    @staticmethod
+    def match_type(type):
+        return type == CONNECTION_TYPE_S2878
+
+    def update_state(self, device_state, debug):
+        from collections import OrderedDict
+        from xml.etree.ElementTree import fromstring
+        import xmljson
+
+        self._attrs = {}
+        conn = self.get_connection(None)
+        device_state = conn.execute(self._connection_template, None)
+        self._xml_status = device_state
+        self._attrs['state_xml'] = self._xml_status
+
+        if self._xml_status is not None:
+            # get DUID
+            if conn._duid is None:
+                if self._xml_status.find('Status="Okay"') != -1:
+                    l = len(CONST_DUID_STR)
+                    pos1 = self._xml_status.find(CONST_DUID_STR)
+                    if pos1 != -1:
+                        pos2 = self._xml_status.find('"', pos1 + l)
+                        if pos2 != -1:
+                            conn._duid = self._xml_status[pos1 + l:pos2]
+            # convert xml to json
+            try:
+                conv = xmljson.Abdera(dict_type=OrderedDict)
+                device_state = conv.data(fromstring(self._xml_status))
+            except:
+                conn.logger.error("Error while converting XML to JSON")
+                device_state = {}
+
+        self._json_status = device_state
+        self._value = self._json_status
+        self._attrs['state_json'] = json.dumps(self._json_status)
+        if self.status_template is not None and self._json_status is not None:
+            try:
+                v = self.status_template.render(device_state=self._json_status)
+                v = v.replace("'", '"')
+                v = v.replace("True", '"True"')
+                self._value = json.loads(v)
+            except:
+                self._value = self._json_status
+        self._attrs['device_state'] = self.value
+
+    @property
+    def state_attributes(self):
+        """Return dictionary with property attributes."""
+        return self._attrs

@@ -15,5 +15,4 @@ CONFIG_DEVICE_CONECTION_TEMPLATE = 'connection_template'
 
 DEFAULT_CONF_CONFIG_FILE = '/config/custom_components/climate_ip/samsungrac.yaml'
 CONF_CONFIG_FILE = 'config_file'
-
 ERROR_MESSAGE = 'ERROR'
