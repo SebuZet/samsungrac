@@ -1,8 +1,8 @@
 import json
 import homeassistant.helpers.config_validation as cv
 from .yaml_const import (
-    CONFIG_DEVICE_STATUS_TEMPLATE, CONFIG_DEVICE_CONECTION_TEMPLATE, CONFIG_TYPE, 
-    CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_OPERATION_VALUES, CONFIG_DEVICE_OPERATION_VALUE, 
+    CONFIG_DEVICE_STATUS_TEMPLATE, CONFIG_DEVICE_CONECTION_TEMPLATE, CONFIG_DEVICE_VALIDATION_TEMPLATE,
+    CONFIG_TYPE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_OPERATION_VALUES, CONFIG_DEVICE_OPERATION_VALUE, 
     CONFIG_DEVICE_OPERATION_NUMBER_MIN, CONFIG_DEVICE_OPERATION_NUMBER_MAX
     )
 
@@ -58,11 +58,23 @@ class DeviceProperty:
         self._status_template = None
         self._id = name
         self._connection_template = None
+        self._validation_template = None
 
     @property
     def id(self):
         return self._id
 
+    def is_valid(self, device_state):
+        if self.validation_template == None or device_state == None:
+            return True
+        else:
+            try:
+                v = self.validation_template.render(device_state=device_state)
+                return str(v).lower() == 'valid'
+            except:
+                return False
+            return False
+    
     @property
     def config_validation_type(self):
         return cv.string
@@ -86,6 +98,10 @@ class DeviceProperty:
     def connection_template(self):
         return self._connection_template
 
+    @property
+    def validation_template(self):
+        return self._validation_template
+
     def load_from_yaml(self, node):
         """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
         from jinja2 import Template
@@ -94,6 +110,8 @@ class DeviceProperty:
                 self._status_template = Template(node[CONFIG_DEVICE_STATUS_TEMPLATE])
             if CONFIG_DEVICE_CONECTION_TEMPLATE in node:
                 self._connection_template = Template(node[CONFIG_DEVICE_CONECTION_TEMPLATE])
+            if CONFIG_DEVICE_VALIDATION_TEMPLATE in node:
+                self._validation_template = Template(node[CONFIG_DEVICE_VALIDATION_TEMPLATE])
             self._connection = self._connection.create_updated(node.get(CONFIG_DEVICE_CONNECTION, {}))
             return True
         return False

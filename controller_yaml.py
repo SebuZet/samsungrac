@@ -4,7 +4,7 @@ import logging
 from .yaml_const import (
     CONFIG_DEVICE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_STATUS,
     CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES,
-    CONF_CONFIG_FILE, CONFIG_DEVICE_NAME,
+    CONF_CONFIG_FILE, CONFIG_DEVICE_NAME, CONFIG_DEVICE_VALIDATE_PROPS,
 )
 
 from .controller import (
@@ -70,6 +70,7 @@ class YamlController(ClimateController):
         self._temp_unit = TEMP_CELSIUS
         self._yaml = config.get(CONF_CONFIG_FILE)
         self._service_schema_map = { vol.Optional(ATTR_ENTITY_ID) : cv.comp_entity_ids }
+        self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
 
     @property
     def id(self):
@@ -88,15 +89,24 @@ class YamlController(ClimateController):
                     self._logger.error("Cannot open YAML configuration file '{}'".format(self._yaml))
                 return False
     
+        validate_props = False
         if CONFIG_DEVICE in yaml_device:
             ac = yaml_device.get(CONFIG_DEVICE, {})
+
+            validate_props = ac.get(CONFIG_DEVICE_VALIDATE_PROPS, False)
+            self._logger.info("Validate properties: {} ({})".format(validate_props, ac.get(CONFIG_DEVICE_VALIDATE_PROPS, False)))
             connection_node = ac.get(CONFIG_DEVICE_CONNECTION, {})
             connection = create_connection(connection_node, self._logger)
+            
             if connection is None:
                 self._logger.error("Cannot create connection object!")
                 return False
 
             self._state_getter = create_status_getter('state', ac.get(CONFIG_DEVICE_STATUS, {}), connection)
+            if self._state_getter == None:
+                self._logger.error("Missing 'state' configuration node")
+                return False
+
             nodes = ac.get(CONFIG_DEVICE_OPERATIONS, {})
             for op_key in nodes.keys():
                 op = create_property(op_key, nodes[op_key], connection)
@@ -110,12 +120,25 @@ class YamlController(ClimateController):
                 if prop is not None:
                     self._properties[prop.id] = prop
 
+            self._name = ac.get(ATTR_NAME, CONST_CONTROLLER_TYPE)
+
+        self.update_state()
+
+        if validate_props:
+            ops = {}
+            device_state = self._state_getter.value
+            for op in self._operations.values():
+                if op.is_valid(device_state):
+                    ops[op.id] = op
+                else:
+                    self._logger.info("Removing invalid operation '{}'".format(op.id))
+                self._operations = ops
+            ops = {}
+
         for f in SUPPORTED_FEATURES_MAP.keys():
             self._supported_features |= (SUPPORTED_FEATURES_MAP[f] if self.get_property(f) is not None else 0)
         
-        self.update_state()
-        self._name = ac.get(ATTR_NAME, CONST_CONTROLLER_TYPE)
-        return self._state_getter is not None and ((len(self._operations) + len(self._properties)) > 0)
+        return ((len(self._operations) + len(self._properties)) > 0)
 
     @staticmethod
     def match_type(type):

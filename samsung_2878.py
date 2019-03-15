@@ -135,15 +135,16 @@ class ConnectionSamsung2878(Connection):
         if template is not None:
             message = template.render(**params) + '\n'
 
+        xml_response = None
         self.logger.info(init_message)
         self.logger.info(message)
         sslSocket = self.create_socket(init_message)
         if sslSocket is not None:
             try:
                 sslSocket.sendall(message.encode('utf-8'))
-                xml_string = sslSocket.recv(4096).decode("utf-8")
+                xml_response = sslSocket.recv(4096).decode("utf-8")
                 sslSocket.close()
-                return xml_string
+                return xml_response
 
             except:
                 self.logger.error('Socket error')
@@ -155,7 +156,7 @@ class ConnectionSamsung2878(Connection):
                 if sslSocket is not None:
                     sslSocket.close()
         
-        return None
+        return xml_response
 
 @register_status_getter
 class GetSamsung2878Status(DeviceProperty):
@@ -176,7 +177,7 @@ class GetSamsung2878Status(DeviceProperty):
 
         self._attrs = {}
         conn = self.get_connection(None)
-        device_state = conn.execute(self._connection_template, None)
+        device_state = xml_test #conn.execute(self._connection_template, None)
         self._xml_status = device_state
         self._attrs['state_xml'] = self._xml_status
 

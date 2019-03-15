@@ -1,5 +1,6 @@
 device:
   name: 'samsungac'
+  validate_properties: True
   connection:
     type: samsung_2878
     params: 
@@ -37,6 +38,7 @@ device:
         'on': { value: 'On' }
       status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_SPI" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_SPI" DUID="{{duid}}"><Attr ID="AC_ADD_SPI" Value="{{value}}" /></Control></Request>'
+      validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_SPI" %}{{valid}}{% endif %}{% endfor %}'
     auto_clean:
       type: switch
       values:
@@ -44,6 +46,7 @@ device:
         'on': { value: 'On' }
       status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_AUTOCLEAN" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_AUTOCLEAN" DUID="{{duid}}"><Attr ID="AC_ADD_AUTOCLEAN" Value="{{value}}" /></Control></Request>'
+      validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_AUTOCLEAN" %}{{valid}}{% endif %}{% endfor %}'
     special: # special_mode
       type: list
       values: 
@@ -57,6 +60,7 @@ device:
         'wind3': { value : 'WindMode3' }
       status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_COMODE" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
+      validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_COMODE" %}{{valid}}{% endif %}{% endfor %}'
     fan: # fan_mode
       type: list
       values: 
@@ -67,6 +71,7 @@ device:
         'turbo': { value : 'Turbo' }
       status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_WINDLEVEL" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_WINDLEVEL" DUID="{{duid}}"><Attr ID="AC_FUN_WINDLEVEL" Value="{{value}}" /></Control></Request>'
+      validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_WINDLEVEL" %}{{valid}}{% endif %}{% endfor %}'
     swing: # swing_mode
       type: list
       values: 
@@ -76,6 +81,7 @@ device:
         'all': { value : "Rotation" }
       status_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_DIRECTION" %}{{a.Attr.attributes.Value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_DIRECTION" DUID="{{duid}}"><Attr ID="AC_FUN_DIRECTION" Value="{{value}}" /></Control></Request>'
+      validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_DIRECTION" %}{{valid}}{% endif %}{% endfor %}'
     temperature:
       type: number
       min: 16
