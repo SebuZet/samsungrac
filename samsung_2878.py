@@ -94,15 +94,23 @@ class ConnectionSamsung2878(Connection):
 
     def create_socket(self, init_message):
         sslSocket = None
+        cfg = self._cfg
         try:
+            self.logger.info("Creating ssl context")
             sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+            self.logger.info("Setting up verify mode")
             sslContext.verify_mode = ssl.CERT_REQUIRED
-            sslContext.load_verify_locations(cafile = self._cert)
+            self.logger.info("Setting up verify location: {}".format(cfg.cert))
+            sslContext.load_verify_locations(cafile = cfg.cert)
+            self.logger.info("Setting up ciphers")
             sslContext.set_ciphers("HIGH:!DH:!aNULL")
-            sslContext.load_cert_chain(self._cert)
-            sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = self._cfg.host)
+            self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
+            sslContext.load_cert_chain(cfg.cert)
+            self.logger.info("Wrapping socket")
+            sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
             if sslSocket is not None:
-                sslSocket.connect((self._cfg.host, self._cfg.port))
+                self.logger.info("Connecting with {}:{}".format(cfg.host, cfg.port))
+                sslSocket.connect((cfg.host, cfg.port))
                 sslSocket.recv(1024) # DRC-1.00
                 sslSocket.recv(1024) # <?xml version="1.0" encoding="utf-8" ?><Update Type="InvalidateAccount"/>
                 sslSocket.sendall(init_message.encode('utf-8'))
@@ -111,6 +119,8 @@ class ConnectionSamsung2878(Connection):
                     reply_str = reply.decode("utf-8")
                     if reply_str.find(CONST_STATUS_OK_STR) != -1:
                         return sslSocket
+            else:
+                self.logger.info("Wrapping socket FAILED")
 
         except:
             self.logger.error('Error creating socket')
@@ -177,7 +187,7 @@ class GetSamsung2878Status(DeviceProperty):
 
         self._attrs = {}
         conn = self.get_connection(None)
-        device_state = xml_test #conn.execute(self._connection_template, None)
+        device_state = conn.execute(self._connection_template, None)
         self._xml_status = device_state
         self._attrs['state_xml'] = self._xml_status
 
@@ -203,6 +213,7 @@ class GetSamsung2878Status(DeviceProperty):
                 self._value = self._json_status
         self._attrs['device_state'] = self.value
         self._attrs['duid'] = conn._cfg.duid
+        return self.value
 
     @property
     def state_attributes(self):

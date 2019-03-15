@@ -121,11 +121,12 @@ class DeviceProperty:
         return dev_value
     
     def update_state(self, device_state, debug):
-        """Update property from device state."""
+        """Update property from device state and return current value."""
         v = STATE_UNKNOWN
         if self.status_template is not None and device_state is not None:
             v = self.status_template.render(device_state=device_state)
         self._value = self.convert_dev_to_hass(v)
+        return self.value
  
     @property
     def state_attributes(self):
@@ -156,6 +157,7 @@ class GetJsonStatus(DeviceProperty):
                 self._value = json.loads(v)
             except:
                 self._value = device_state
+        return self.value
 
     @property
     def state_attributes(self):
