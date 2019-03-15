@@ -177,7 +177,7 @@ class GetSamsung2878Status(DeviceProperty):
 
         self._attrs = {}
         conn = self.get_connection(None)
-        device_state = xml_test #conn.execute(self._connection_template, None)
+        device_state = conn.execute(self._connection_template, None)
         self._xml_status = device_state
         self._attrs['state_xml'] = self._xml_status
 
