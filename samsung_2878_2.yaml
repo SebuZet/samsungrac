@@ -7,6 +7,7 @@ device:
       cert: "/config/custom_components/climate_ip/ac14k_m.pem"
       host: "__IP__"
       token: '__TOKEN__'
+      mac: 'AB:cd:EF:gh:IJ'
       connection_template: '<Request Type="AuthToken"><User Token="{{token}}" /></Request>'
   status:
     type: 'samsung_2878'

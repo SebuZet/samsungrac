@@ -7,6 +7,7 @@ import logging
 import sys
 import ssl
 import traceback
+import re
 
 CONNECTION_TYPE_S2878 = 'samsung_2878'
 
@@ -14,7 +15,8 @@ CONF_PORT = 'port'
 CONF_HOST = 'host'
 CONF_TOKEN = 'token'
 CONF_CERT = 'cert'
-CONST_DUID_STR = 'DUID="'
+CONF_DUID = 'duid'
+CONF_MAC = 'mac'
 CONST_STATUS_OK_STR = 'Status="Okay"'
 
 xml_test = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="79"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="On"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Cool"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>'
@@ -54,16 +56,27 @@ class ConnectionSamsung2878(Connection):
                     return False
                 if CONF_TOKEN in params_node:
                     self._cfg.token = params_node[CONF_TOKEN]
-                    self.logger.info(self._cfg.token)
                     self._params[CONF_TOKEN] = self._cfg.token
                 else:
                     print ("ERROR: missing 'token' parameter in connection section")
+                    return False
+                self._cfg.duid = params_node.get(CONF_DUID, None)
+                if self._cfg.duid == None:
+                    mac = params_node.get(CONF_MAC, None)
+                    if mac != None:
+                        self._cfg.duid = re.sub(':', '', mac)
+                if self._cfg.duid == None:
+                    print ("ERROR: Nor 'duid' or 'mac' parameter found in connection section")
                     return False
                 if CONF_CERT in params_node:
                     self._cfg.cert = params_node[CONF_CERT]
                 else:
                     print ("ERROR: missing 'cert' parameter in connection section")
                     return False
+                self.logger.info("Configuration, host: {}".format(self._cfg.host))
+                self.logger.info("Configuration, port: {}".format(self._cfg.port))
+                self.logger.info("Configuration, token: {}".format(self._cfg.token))
+                self.logger.info("Configuration, duid: {}".format(self._cfg.duid))
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
             return True
         return False
@@ -92,7 +105,7 @@ class ConnectionSamsung2878(Connection):
                 sslSocket.connect((self._cfg.host, self._cfg.port))
                 sslSocket.recv(1024) # DRC-1.00
                 sslSocket.recv(1024) # <?xml version="1.0" encoding="utf-8" ?><Update Type="InvalidateAccount"/>
-                sslSocket.send(init_message.encode('utf-8'))
+                sslSocket.sendall(init_message.encode('utf-8'))
                 reply = sslSocket.recv(4096)
                 if reply is not None:
                     reply_str = reply.decode("utf-8")
@@ -116,16 +129,18 @@ class ConnectionSamsung2878(Connection):
         params.update({ 'value' : v, 'duid' : self._cfg.duid })
         init_message = ''
         if self._connection_init_template is not None:
-            init_message = self._connection_init_template.render(**params)
+            init_message = self._connection_init_template.render(**params) + '\n'
 
         message = v
         if template is not None:
-            message = template.render(**params)
+            message = template.render(**params) + '\n'
 
+        self.logger.info(init_message)
+        self.logger.info(message)
         sslSocket = self.create_socket(init_message)
         if sslSocket is not None:
             try:
-                sslSocket.send(message.encode('utf-8'))
+                sslSocket.sendall(message.encode('utf-8'))
                 xml_string = sslSocket.recv(4096).decode("utf-8")
                 sslSocket.close()
                 return xml_string
@@ -166,19 +181,6 @@ class GetSamsung2878Status(DeviceProperty):
         self._attrs['state_xml'] = self._xml_status
 
         if self._xml_status is not None:
-            # get DUID
-            if conn._cfg.duid is None:
-                if self._xml_status.find(CONST_STATUS_OK_STR) != -1:
-                    l = len(CONST_DUID_STR)
-                    pos1 = self._xml_status.find(CONST_DUID_STR)
-                    if pos1 != -1:
-                        pos2 = self._xml_status.find('"', pos1 + l)
-                        if pos2 != -1:
-                            conn._cfg.duid = self._xml_status[pos1 + l:pos2]
-                        else:
-                            conn.logger.error("Cannot find DUID(2) in response")
-                    else:
-                        conn.logger.error("Cannot find DUID(1) in response")
             # convert xml to json
             try:
                 conv = xmljson.Abdera(dict_type=OrderedDict)
