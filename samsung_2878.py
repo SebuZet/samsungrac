@@ -125,13 +125,7 @@ class ConnectionSamsung2878(Connection):
         except:
             self.logger.error('Error creating socket')
             if sslSocket is not None:
-                sslSocket.shutdown(SHUT_RDWR)
                 sslSocket.close()
-
-        finally:
-            if sslSocket is not None:
-                sslSocket.close()
-
         return None
 
     def execute(self, template, v):
@@ -159,7 +153,6 @@ class ConnectionSamsung2878(Connection):
             except:
                 self.logger.error('Socket error')
                 if sslSocket is not None:
-                    sslSocket.shutdown(SHUT_RDWR)
                     sslSocket.close()
 
             finally:
