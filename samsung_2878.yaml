@@ -1,6 +1,6 @@
 device:
   name: 'samsungac'
-  validate_properties: True
+  #validate_properties: True
   connection:
     type: samsung_2878
     params: 
