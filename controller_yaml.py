@@ -3,7 +3,7 @@ import logging
 
 from .yaml_const import (
     CONFIG_DEVICE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_STATUS,
-    CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES,
+    CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES, CONFIG_DEVICE_FRIENDLY_NAME,
     CONF_CONFIG_FILE, CONFIG_DEVICE_NAME, CONFIG_DEVICE_VALIDATE_PROPS,
 )
 
@@ -63,6 +63,7 @@ class YamlController(ClimateController):
         self._operations = {}
         self._properties = {}
         self._name = CONST_CONTROLLER_TYPE
+        self._friendly_name = None
         self._attributes = { 'controller' : self.id }
         self._state_getter = None
         self._debug = config.get('debug', False)
@@ -121,6 +122,7 @@ class YamlController(ClimateController):
                     self._properties[prop.id] = prop
 
             self._name = ac.get(ATTR_NAME, CONST_CONTROLLER_TYPE)
+            self._friendly_name = ac.get(CONFIG_DEVICE_FRIENDLY_NAME, None)
 
         self.update_state()
 
@@ -149,6 +151,14 @@ class YamlController(ClimateController):
         device_name = self.get_property(ATTR_NAME)
         return device_name if device_name is not None else self._name
 
+    @property
+    def friendly_name(self):
+        return self._friendly_name
+        
+    @property
+    def debug(self):
+        return self._debug
+        
     def update_state(self):
         debug = self._debug
         if self._state_getter is not None:

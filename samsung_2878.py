@@ -45,38 +45,33 @@ class ConnectionSamsung2878(Connection):
             if CONFIG_DEVICE_CONECTION_TEMPLATE in params_node:
                 self._connection_init_template = Template(params_node[CONFIG_DEVICE_CONECTION_TEMPLATE])
             elif connection_base is None:
-                print ("ERROR: missing 'connection_template' parameter in connection section")
+                self.logger.error("ERROR: missing 'connection_template' parameter in connection section")
                 return False
             if connection_base is None:
                 self._cfg.port = params_node.get(CONF_PORT, 2878)
-                if CONF_HOST in params_node:
-                    self._cfg.host = params_node[CONF_HOST]
-                else:
-                    print ("ERROR: missing 'host' parameter in connection section")
-                    return False
-                if CONF_TOKEN in params_node:
-                    self._cfg.token = params_node[CONF_TOKEN]
-                    self._params[CONF_TOKEN] = self._cfg.token
-                else:
-                    print ("ERROR: missing 'token' parameter in connection section")
-                    return False
+                self._cfg.host = params_node.get(CONF_HOST, None)
+                self._cfg.token = params_node.get(CONF_TOKEN, None)
+                self._cfg.cert = params_node.get(CONF_CERT, None)
                 self._cfg.duid = params_node.get(CONF_DUID, None)
+                if self._cfg.host is None:
+                    self.logger.error("ERROR: missing 'host' parameter in connection section")
+                    return False
+                if self._cfg.token is None:
+                    self.logger.error("ERROR: missing 'token' parameter in connection section")
+                    return False
                 if self._cfg.duid == None:
                     mac = params_node.get(CONF_MAC, None)
                     if mac != None:
                         self._cfg.duid = re.sub(':', '', mac)
                 if self._cfg.duid == None:
-                    print ("ERROR: Nor 'duid' or 'mac' parameter found in connection section")
+                    self.logger.error("ERROR: Nor 'duid' or 'mac' parameter found in connection section")
                     return False
-                if CONF_CERT in params_node:
-                    self._cfg.cert = params_node[CONF_CERT]
-                else:
-                    print ("ERROR: missing 'cert' parameter in connection section")
-                    return False
-                self.logger.info("Configuration, host: {}".format(self._cfg.host))
-                self.logger.info("Configuration, port: {}".format(self._cfg.port))
+                if self._cfg.cert is None:
+                    self.logger.warning("WARNING: missing 'cert' parameter in connection section")
+                self.logger.info("Configuration, host: {}:{}".format(self._cfg.host, self._cfg.port))
                 self.logger.info("Configuration, token: {}".format(self._cfg.token))
                 self.logger.info("Configuration, duid: {}".format(self._cfg.duid))
+                self.logger.info("Configuration, cert: {}".format(self._cfg.cert))
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
             return True
         return False
@@ -98,21 +93,22 @@ class ConnectionSamsung2878(Connection):
         try:
             self.logger.info("Creating ssl context")
             sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-            self.logger.info("Setting up verify mode")
-            sslContext.verify_mode = ssl.CERT_REQUIRED
-            self.logger.info("Setting up verify location: {}".format(cfg.cert))
-            sslContext.load_verify_locations(cafile = cfg.cert)
             self.logger.info("Setting up ciphers")
             sslContext.set_ciphers("HIGH:!DH:!aNULL")
-            self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
-            sslContext.load_cert_chain(cfg.cert)
+            self.logger.info("Setting up verify mode")
+            sslContext.verify_mode = ssl.CERT_REQUIRED if cfg.cert is not None else ssl.CERT_NONE
+            if cfg.cert is not None:
+                self.logger.info("Setting up verify location: {}".format(cfg.cert))
+                sslContext.load_verify_locations(cafile = cfg.cert)
+                self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
+                sslContext.load_cert_chain(cfg.cert)
             self.logger.info("Wrapping socket")
             sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
             if sslSocket is not None:
                 self.logger.info("Connecting with {}:{}".format(cfg.host, cfg.port))
                 sslSocket.connect((cfg.host, cfg.port))
-                sslSocket.recv(1024) # DRC-1.00
-                sslSocket.recv(1024) # <?xml version="1.0" encoding="utf-8" ?><Update Type="InvalidateAccount"/>
+                sslSocket.recv(1024)
+                sslSocket.recv(1024)
                 sslSocket.sendall(init_message.encode('utf-8'))
                 reply = sslSocket.recv(4096)
                 if reply is not None:
@@ -199,8 +195,6 @@ class GetSamsung2878Status(DeviceProperty):
         if self.status_template is not None and self._json_status is not None:
             try:
                 v = self.status_template.render(device_state=self._json_status)
-                v = v.replace("'", '"')
-                v = v.replace("True", '"True"')
                 self._value = json.loads(v)
             except:
                 self._value = self._json_status

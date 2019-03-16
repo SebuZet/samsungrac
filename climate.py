@@ -47,6 +47,7 @@ DEFAULT_CONF_CONTROLLER = 'yaml'
 CONF_CERT_FILE = 'cert_file'
 CONF_DEBUG = 'debug'
 CONF_CONTROLLER = 'controller'
+SCAN_INTERVAL = timedelta(seconds=15)
 
 REQUIREMENTS = ['requests>=2.21.0', 'xmljson>=0.2.0']
 
@@ -69,6 +70,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
 
+    _LOGGER.setLevel(logging.INFO if config.get('debug', False) else logging.ERROR)
     _LOGGER.info("climate_ip: async setup platform")
 
     try:
@@ -76,7 +78,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     except:
         _LOGGER.error("climate_ip: error while creating controller!")
         raise
-        return PlatformNotReady
 
     if device_controller is None:
         return PlatformNotReady
@@ -115,8 +116,6 @@ class ClimateIP(ClimateDevice):
 
     def __init__(self, rac_controller):
         self.rac = rac_controller
-        #_LOGGER.setLevel(logging.INFO if rac_controller._debug else logging.ERROR)
-        _LOGGER.setLevel(logging.INFO)
 
     @property
     def supported_features(self):
@@ -138,11 +137,13 @@ class ClimateIP(ClimateDevice):
 
     @property
     def should_poll(self):
-        return False
+        return True
 
     @property
     def name(self):
-        if self.rac.name is None:
+        if self.rac.friendly_name is not None:
+            return self.rac.friendly_name
+        elif self.rac.name is None:
             return 'climate_ip'
         else:
             return 'climate_ip_' + self.rac.name
