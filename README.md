@@ -11,24 +11,28 @@ Support for any unit working with REST API can be easily added via YAML configur
 1. Create folder <ha_configuration_folder>/custom_components/__climate_ip__
 2. Download all files from repo to newly created folder
 3. In __configuration.yaml__ file add section:
-    1. For new generation units (REST API, port 8888)
-        >     climate:
-        >     - platform: climate_ip
-        >       config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsungrac.yaml'
-    2. For old generation units:
-        >     climate:
-        >     - platform: climate_ip
-        >       config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsung_2878.yaml'
+    * For new generation units (REST API, port 8888)
+        ```
+        climate:
+        - platform: climate_ip
+          config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsungrac.yaml'
+        ```
+    * For old generation units:
+        ```
+        climate:
+        - platform: climate_ip
+          config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsung_2878.yaml'
+        ```
 ## Configuration
 You need to have your device __token__. Please use google to find a way to get it :-) 
 1. For new generation units (REST API, port 8888) edit __samsungrac.yaml__ configuration file to meet your settings:
-    1. Replace "__ TOKEN__" string with your device __token__
-    2. Replace "__ IP__ADDRESS__" string with your device IP address
+    * Replace "__ TOKEN__" string with your device __token__
+    * Replace "__ IP__ADDRESS__" string with your device IP address
 2. For old generation units edit __samsung_2878.yaml__ configuration to meet your settings:
-    1. Set IP address of your device using __host__ parameter
-    2. Set device token using __token__ parameter
-    3. Set device MAC address using __mac__ parameter
-    4. Set path to certificate file using __cert__ parameter -  remove this parameter to connect with device without certificate validation
+    * Set IP address of your device using __host__ parameter
+    * Set device token using __token__ parameter
+    * Set device MAC address using __mac__ parameter
+    * Set path to certificate file using __cert__ parameter -  remove this parameter to connect with device without certificate validation
 3. YAML configuration
 You can easily add, remove or modify any device paramter to meet device capabilities.
 I hope that more detailed specification will be created *soon* :-D
