@@ -1,86 +1,86 @@
-# Samsung AC device for Home Assistant
-My implementation of ClimateDevice for controlling Samsung AC unit
+# Climate_IP - IP based climate device for Home Assistant
+Implementation of ClimateDevice for controlling IP based AC units.
+This component is able to work with any AC unit which can be controlled with REST API.
+At this moment it is configured to work with:
+* Samsung AC units available at port 8888 (new generation, REST API)
+* Samsung AC units available at port 2878 (old generation, socket communication)
 
-## WARNING
-Home Assistant (v. 0.89) introduced many changes in components file structure. Since version 1.1.0 this component requires HA in version >= 0.89.
+Support for any unit working with REST API can be easily added via YAML configuration file.
 
+## Installation
+1. Create folder <ha_configuration_folder>/custom_components/__climate_ip__
+2. Download all files from repo to newly created folder
+3. In __configuration.yaml__ file add section:
+    1. For new generation units (REST API, port 8888)
+        >     climate:
+        >     - platform: climate_ip
+        >       config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsungrac.yaml'
+    2. For old generation units:
+        >     climate:
+        >     - platform: climate_ip
+        >       config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsung_2878.yaml'
 ## Configuration
-1. get your device token ([this](https://community.home-assistant.io/t/samsung-ac/11747/5) is a good place to start)
-2. download all files to folder \<HASS configuration folder\>/custom_components/samsungrac/
-3. add configuration section to you configuration.yaml file:
+You need to have your device __token__. Please use google to find a way to get it :-) 
+1. For new generation units (REST API, port 8888) edit __samsungrac.yaml__ configuration file to meet your settings:
+    1. Replace "__ TOKEN__" string with your device __token__
+    2. Replace "__ IP__ADDRESS__" string with your device IP address
+2. For old generation units edit __samsung_2878.yaml__ configuration to meet your settings:
+    1. Set IP address of your device using __host__ parameter
+    2. Set device token using __token__ parameter
+    3. Set device MAC address using __mac__ parameter
+    4. Set path to certificate file using __cert__ parameter -  remove this parameter to connect with device without certificate validation
+3. YAML configuration
+You can easily add, remove or modify any device paramter to meet device capabilities.
+I hope that more detailed specification will be created *soon* :-D
 
-Configuration params:
-
-| Param name        | description           |
-| ------------- |-------------|
-| host      | Device address including schema and port (e.g. https://192.178.1.200:8888) |
-| access_token           | Access token to the device        |
-| cert_file   | Path to certificate file   |
-| temperature_unit      | Temperature unit ("C"/"F"). Used only if device doesn't report this value. Default: "C" |
-| extra_off_mode    | True if user wants to add 'virtual' OFF mode. Default: False WORK IN PORGRESS   |
-| debug      | Enable/disable more debugs. Default: False |
-
-Configuration example:
-```
-climate:
-  - platform: samsungrac
-    host: https://192.178.1.200:8888
-    access_token: axdbYtrsdf
-    cert_file: /config/custom_components/samsungrac/ac14k_m.pem
-```
+## YAML configuration file syntax
+TO DO
 ## Functionality
-* turn device on and off
-* sets and reads target/min/max temperatures
-* sets and reads swing direction
-* sets and reads fan level
-* sets and reads fan maximum level
-* sets and reads special mode (2Step, Comfort, Quiet etc)
-* sets and reads good sleep mode
-* turn purify mode on and off
-* turn auto clean mode on and off
-* turn beep mode on and off
-* read current indoor temperature
-* read device configuration
+Functionality depends on yaml configuration file and can be easily changed by editing those files. Currently configuration provides:
+1. For new generation units (REST API, port 8888)
+    * turn device on and off
+    * sets and reads target/min/max temperatures
+    * sets and reads swing direction
+    * sets and reads fan level
+    * sets and reads fan maximum level
+    * sets and reads special mode (2Step, Comfort, Quiet etc)
+    * sets and reads good sleep mode
+    * turn purify mode on and off
+    * turn auto clean mode on and off
+    * turn beep mode on and off
+    * read current indoor temperature
+    * read device configuration
+1. For old generation units 
+    * turn device on and off
+    * sets and reads target temperature
+    * sets and reads swing direction (if supported)
+    * sets and reads fan level (if supported)
+    * sets and reads special mode (Comfort, Quiet etc)
+    * turn purify mode on and off (if supported)
+    * turn auto clean mode on and off (if supported)
+    * read current indoor temperature
+    * read device configuration
 ## Using
-This component implements Home Assistant ClimateDevice class. Samsung device specific functionality is added as extra service called '**set_custom_mode**'.
-### Functionality enabled in HA by default:
+### Default functionality
+This component implements Home Assistant ClimateDevice class. Functionality enabled in HA by default:
 * turn device on/off
 * select fan mode
 * select swing mode
 * select target temperatures (min, max and target)
-### Functionality available through set_custom_mode service
-All modes (except temperatures) can be changed through **set_custom_mode** service.
-To change mode **set_custom_mode** service must be called with dedicated params.
-
-List of available params:
-
-| Param name        | Values           | example   |
-| ------------- |:-------------:| -----:|
-| entity_id      | device id to work on | climate.samsung_rac |
-| mode           | heat/cool/dry/fan_only/auto | auto        |
-| special_mode   | off/sleep/speed/2step/comfort/quiet/smart      | comfort   |
-| purify      | on/off      |   on |
-| auto_clean    | on/off      |    off |
-| good_sleep   | 1 to 24 (increments of 30 mins)      |    2 |
-| fan_mode    | auto/low/medium/high/turbo      |    auto |
-| fan_mode_max   | auto/low/medium/high/turbo      |    auto |
-| swing_mode   | all/vertical/horizontal/fix      |    all |
-| power   | on/off      |    off |
-| beep      | on/off      |   on |
-| debug      | 0/1      |   0 |
-
-Service can be called with any parameter subset. For example:
+### Device specific functions
+Device specific functionality is added as extra service called **climate.climate_ip_samsungrac_set_property**.
+Every device attribute can be set using this service with proper params.
 
 ```
 {
-"entity_id" : "climate.samsung_rac",
-"power" : "on",
-"purify" : "on",
-"special_mode" : "comfort"
+  "entity_id" : "climate.salon_ac",
+  "power" : "on",
+  "purify" : "on",
+  "special_mode" : "comfort"
 }
 ```
-### Switches for special functionalities
-To make controllig device as easy as possible user can create template switches for options like Purify, Power, Beep, Auto Clean. 
+### Switches for special functions
+To make controllig device as easy as possible user can create template switches for operations defined as __Switch__ (please see configuration file). 
 Below is an example of template switch for Purify option
 ```
 switch:
@@ -88,16 +88,16 @@ switch:
     switches:
       purify:
         friendly_name: "AC Purifier"
-        value_template: "{{ is_state_attr('climate.samsung_rac', 'purify', 'on') }}"
+        value_template: "{{ is_state_attr('climate.salon_ac', 'purify', 'on') }}"
         turn_on:
-          service: climate.set_custom_mode
+          service: climate.climate_ip_samsungrac_set_property
           data:
-            entity_id: climate.samsung_rac
+            entity_id: climate.salon_ac
             purify: 'on'
         turn_off:
-          service: climate.set_custom_mode
+          service: climate.climate_ip_samsungrac_set_property
           data:
-            entity_id: climate.samsung_rac
+            entity_id: climate.salon_ac
             purify: 'off'
 ```
 # References
@@ -105,5 +105,4 @@ switch:
  * [HA forum](https://community.home-assistant.io/t/samsung-ac/11747/11)
  
 ## TODO
-* Read sw/fw version
-* Implement device_info node
+Documentation...
