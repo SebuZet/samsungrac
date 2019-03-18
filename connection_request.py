@@ -1,19 +1,24 @@
 from .connection import (register_connection, Connection)
-from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS)
+from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, CONF_CERT)
+from homeassistant.const import (CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS)
 import json
 import logging
+import os
 
 CONNECTION_TYPE_REQUEST = 'request'
 CONNECTION_TYPE_REQUEST_PRINT = 'request_print'
 
 @register_connection
 class ConnectionRequest(Connection):
-    def __init__(self, logger):
-        super(ConnectionRequest, self).__init__(logger)
+    def __init__(self, hass_config, logger):
+        super(ConnectionRequest, self).__init__(hass_config, logger)
+        self._params = {}
         logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
     def load_from_yaml(self, node, connection_base):
-        self._params = {} if connection_base is None else connection_base._params.copy()
+        if connection_base is not None:
+            self._params.update(connection_base._params)
+        
         if node is not None:
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
         return True
@@ -23,7 +28,7 @@ class ConnectionRequest(Connection):
         return type == CONNECTION_TYPE_REQUEST
 
     def create_updated(self, node):
-        c = ConnectionRequest(self.logger)
+        c = ConnectionRequest(None, self.logger)
         c.load_from_yaml(node, self)
         return c
 
@@ -58,11 +63,14 @@ test_json = {'Alarms':[{'alarmType':'Device','code':'FilterAlarm','id':'0','trig
 
 @register_connection
 class ConnectionRequestPrint(Connection):
-    def __init__(self, logger):
-        super(ConnectionRequestPrint, self).__init__(logger)
+    def __init__(self, hass_config, logger):
+        super(ConnectionRequestPrint, self).__init__(hass_config, logger)
+        self._params = {}
 
     def load_from_yaml(self, node, connection_base):
-        self._params = {} if connection_base is None else connection_base._params.copy()
+        if connection_base is not None:
+            self._params.update(connection_base._params)
+        
         if node is not None:
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
         return True  
@@ -72,7 +80,8 @@ class ConnectionRequestPrint(Connection):
         return type == CONNECTION_TYPE_REQUEST_PRINT
 
     def create_updated(self, node):
-        c = ConnectionRequestPrint(self.logger)
+        c = ConnectionRequestPrint(None, self.logger)
+        c._params = self._params
         c.load_from_yaml(node, self)
         return c
 

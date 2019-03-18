@@ -9,13 +9,18 @@ def register_connection(conn):
     return conn
 
 class Connection:
-    def __init__(self, logger):
+    def __init__(self, config, logger):
         self._params = {}
         self._logger = logger
+        self._config = config
 
     @property
     def logger(self):
         return self._logger
+
+    @property
+    def config(self):
+        return self._config
 
     def load_from_yaml(self, node, connection_base):
         """Load configuration from yaml node dictionary. Use connection base as base but DO NOT modify it.
@@ -30,11 +35,11 @@ class Connection:
         """Create a copy of connection object and update this object from YAML configuration node"""
         return None
 
-def create_connection(node, logger) -> Connection:
+def create_connection(node, config, logger) -> Connection:
     for conn in CLIMATE_IP_CONNECTIONS:
         if CONFIG_TYPE in node:
             if conn.match_type(node[CONFIG_TYPE]):
-                c = conn(logger)
+                c = conn(config, logger)
                 if c.load_from_yaml(node, None):
                     return c
     return None

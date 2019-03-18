@@ -22,12 +22,14 @@ from homeassistant.components.climate import (ClimateDevice, DOMAIN,
 
 from homeassistant.const import (
     TEMP_CELSIUS, TEMP_FAHRENHEIT,
-    CONF_ACCESS_TOKEN, CONF_HOST, CONF_TEMPERATURE_UNIT,
+    CONF_ACCESS_TOKEN, CONF_TEMPERATURE_UNIT,
     ATTR_TEMPERATURE, ATTR_NAME, ATTR_ENTITY_ID,
     STATE_OFF, STATE_ON, 
+    CONF_IP_ADDRESS, CONF_TOKEN, CONF_MAC
 )
 
-from .yaml_const import (DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE)
+from .yaml_const import (DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, CONF_CONTROLLER,
+)
 
 import voluptuous as vol
 from datetime import timedelta
@@ -40,13 +42,10 @@ import asyncio
 from .controller import (ATTR_POWER, ClimateController, create_controller)
 
 
-DEFAULT_CONF_CERT_FILE = '/config/custom_components/climate-ip/ac14k_m.pem'
+DEFAULT_CONF_CERT_FILE = 'ac14k_m.pem'
 DEFAULT_CONF_TEMP_UNIT = TEMP_CELSIUS
 DEFAULT_CONF_CONTROLLER = 'yaml'
 
-CONF_CERT_FILE = 'cert_file'
-CONF_DEBUG = 'debug'
-CONF_CONTROLLER = 'controller'
 SCAN_INTERVAL = timedelta(seconds=15)
 
 REQUIREMENTS = ['requests>=2.21.0', 'xmljson>=0.2.0']
@@ -59,9 +58,10 @@ SERVICE_SET_CUSTOM_OPERATION = 'climate_ip_{}_set_property'
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_HOST, default='PROVIDE_DEVICE_HOST_IN_CONFIGURATION_SECTION'): cv.string,
-    vol.Optional(CONF_ACCESS_TOKEN, default='PROVIDE_ACCESS_TOKEN_IN_CONFIGURATION_SECTION'): cv.string,
-    vol.Optional(CONF_CERT_FILE, default=DEFAULT_CONF_CERT_FILE): cv.string,
+    vol.Required(CONF_IP_ADDRESS): cv.string,
+    vol.Optional(CONF_TOKEN): cv.string,
+    vol.Optional(CONF_MAC): cv.string,
+    vol.Optional(CONF_CERT, default=DEFAULT_CONF_CERT_FILE): cv.string,
     vol.Optional(CONF_CONFIG_FILE, default=DEFAULT_CONF_CONFIG_FILE): cv.string,
     vol.Optional(CONF_TEMPERATURE_UNIT, default=DEFAULT_CONF_TEMP_UNIT): cv.string,
     vol.Optional(CONF_CONTROLLER, default=DEFAULT_CONF_CONTROLLER): cv.string,
@@ -74,7 +74,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     _LOGGER.info("climate_ip: async setup platform")
 
     try:
-        device_controller = create_controller('yaml', config, _LOGGER)
+        device_controller = create_controller(config.get(CONF_CONTROLLER), config, _LOGGER)
     except:
         _LOGGER.error("climate_ip: error while creating controller!")
         raise

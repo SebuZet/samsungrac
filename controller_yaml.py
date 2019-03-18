@@ -1,10 +1,12 @@
 import yaml
 import logging
+import os
 
 from .yaml_const import (
     CONFIG_DEVICE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_STATUS,
     CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES, CONFIG_DEVICE_FRIENDLY_NAME,
     CONF_CONFIG_FILE, CONFIG_DEVICE_NAME, CONFIG_DEVICE_VALIDATE_PROPS,
+    CONFIG_DEVICE_CONNECTION_PARAMS,
 )
 
 from .controller import (
@@ -29,7 +31,7 @@ from homeassistant.components.climate.const import (
     )
 from homeassistant.const import (
     TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_NAME, ATTR_TEMPERATURE,
-    CONF_ACCESS_TOKEN, CONF_HOST, CONF_TEMPERATURE_UNIT,
+    CONF_IP_ADDRESS, CONF_TEMPERATURE_UNIT, CONF_TOKEN,
     STATE_ON, ATTR_ENTITY_ID,
 )
 
@@ -55,6 +57,31 @@ UNIT_MAP = {
     'F': TEMP_FAHRENHEIT, 'f': TEMP_FAHRENHEIT, 'Fahrenheit': TEMP_FAHRENHEIT, TEMP_FAHRENHEIT : TEMP_FAHRENHEIT,
 }
 
+class StreamWrapper(object):
+    def __init__(self, stream, token, ip_address):
+        self.stream = stream
+        self.leftover = ''
+        self.token = token
+        self.ip_address = ip_address
+
+    def read(self, size):
+        data = self.leftover
+        count = len(self.leftover)
+
+        if count < size:
+            chunk = self.stream.read(size)
+
+            if self.token is not None:
+                chunk = chunk.replace('__CLIMATE_IP_TOKEN__', self.token)
+            if self.ip_address is not None:
+                chunk = chunk.replace('__CLIMATE_IP_HOST__', self.ip_address)
+
+            data += chunk
+            count += len(chunk)
+
+        self.leftover = data[size:]
+        return data[:size]
+
 @register_controller
 class YamlController(ClimateController):
     def __init__(self, config, logger):
@@ -69,18 +96,33 @@ class YamlController(ClimateController):
         self._debug = config.get('debug', False)
         self._supported_features = 0
         self._temp_unit = TEMP_CELSIUS
-        self._yaml = config.get(CONF_CONFIG_FILE)
         self._service_schema_map = { vol.Optional(ATTR_ENTITY_ID) : cv.comp_entity_ids }
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
-
+        self._yaml = config.get(CONF_CONFIG_FILE)
+        self._ip_address = config.get(CONF_IP_ADDRESS, None)
+        self._token = config.get(CONF_TOKEN, None)
+        self._config = config
+        
     @property
     def id(self):
         return CONST_CONTROLLER_TYPE
 
     def initialize(self):
-        with open(self._yaml, 'r') as stream:
+        connection_params = { CONFIG_DEVICE_CONNECTION_PARAMS : { } }
+        
+        file = self._yaml
+        if file is not None and file.find('\\') == -1 and file.find('/') == -1:
+            file = os.path.join(os.path.dirname(__file__), file)
+        self._logger.info("Loading configuration file: {}".format(file))
+
+        if self._ip_address is not None:
+            self._logger.info("ip_address: {}".format(self._ip_address))
+        if self._token is not None:
+            self._logger.info("token: {}".format(self._token))
+
+        with open(file, 'r') as stream:
             try:
-                yaml_device = yaml.load(stream)
+                yaml_device = yaml.safe_load(StreamWrapper(stream, self._token, self._ip_address))
             except yaml.YAMLError as exc:
                 if self._logger is not None:
                     self._logger.error("YAML error: {}".format(exc))
@@ -93,11 +135,10 @@ class YamlController(ClimateController):
         validate_props = False
         if CONFIG_DEVICE in yaml_device:
             ac = yaml_device.get(CONFIG_DEVICE, {})
-
             validate_props = ac.get(CONFIG_DEVICE_VALIDATE_PROPS, False)
             self._logger.info("Validate properties: {} ({})".format(validate_props, ac.get(CONFIG_DEVICE_VALIDATE_PROPS, False)))
             connection_node = ac.get(CONFIG_DEVICE_CONNECTION, {})
-            connection = create_connection(connection_node, self._logger)
+            connection = create_connection(connection_node, self._config, self._logger)
             
             if connection is None:
                 self._logger.error("Cannot create connection object!")

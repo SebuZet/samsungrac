@@ -16,6 +16,10 @@ CONFIG_DEVICE_STATUS_TEMPLATE = 'status_template'
 CONFIG_DEVICE_CONECTION_TEMPLATE = 'connection_template'
 CONFIG_DEVICE_VALIDATION_TEMPLATE = 'validation_template'
 
-DEFAULT_CONF_CONFIG_FILE = '/config/custom_components/climate_ip/samsungrac.yaml'
+CONF_CERT = 'cert'
+CONF_DEBUG = 'debug'
+CONF_CONTROLLER = 'controller'
+
+DEFAULT_CONF_CONFIG_FILE = 'samsungrac.yaml'
 CONF_CONFIG_FILE = 'config_file'
 ERROR_MESSAGE = 'ERROR'

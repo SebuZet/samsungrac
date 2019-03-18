@@ -1,5 +1,8 @@
 from .connection import (register_connection, Connection)
-from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_DEVICE_CONECTION_TEMPLATE)
+from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, 
+    CONFIG_DEVICE_CONECTION_TEMPLATE, CONF_CERT,
+)
+from homeassistant.const import (CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS)
 from .properties import (register_status_getter, DeviceProperty)
 from socket import * 
 import json
@@ -8,39 +11,62 @@ import sys
 import ssl
 import traceback
 import re
+import os
 
 CONNECTION_TYPE_S2878 = 'samsung_2878'
 
-CONF_PORT = 'port'
-CONF_HOST = 'host'
-CONF_TOKEN = 'token'
-CONF_CERT = 'cert'
 CONF_DUID = 'duid'
-CONF_MAC = 'mac'
 CONST_STATUS_OK_STR = 'Status="Okay"'
 
 xml_test = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="79"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="On"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Cool"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>'
 
 class connection_config():
-    def __init__(self, h, p, t, c):
-        self.host = h
-        self.port = p
-        self.token = t
-        self.duid = None
-        self.cert = None
+    def __init__(self, host, port, token, cert, duid):
+        self.host = host
+        self.port = port
+        self.token = token
+        self.duid = duid
+        self.cert = cert
 
 @register_connection
 class ConnectionSamsung2878(Connection):
-    def __init__(self, logger):
-        super(ConnectionSamsung2878, self).__init__(logger)
+    def __init__(self, hass_config, logger):
+        super(ConnectionSamsung2878, self).__init__(hass_config, logger)
         self._params = {}
-        self._cfg = connection_config(None, None, None, None)
         self._connection_init_template = None
         self._sslSocket = None
-        
+        self.update_configurtionfrom_hass(hass_config)
+    
+    def update_configurtionfrom_hass(self, hass_config):
+        if hass_config is not None:
+            cert_file = hass_config.get(CONF_CERT, None)
+            if cert_file == '':
+                cert_file = None
+            if cert_file is not None:
+                if cert_file.find('\\') == -1 and cert_file.find('/') == -1:
+                    cert_file = os.path.join(os.path.dirname(__file__), cert_file)
+
+            duid = None
+            mac = hass_config.get(CONF_MAC, None)
+            if mac is not None:
+                duid = re.sub(':', '', mac)
+            
+            cfg = connection_config(
+                hass_config.get(CONF_IP_ADDRESS, None), 
+                hass_config.get(CONF_PORT, 2878), 
+                hass_config.get(CONF_TOKEN, None),
+                cert_file,
+                duid)
+
+            self._cfg = cfg
+            self._params[CONF_DUID] = cfg.duid
+            self._params[CONF_TOKEN] = cfg.token
+
     def load_from_yaml(self, node, connection_base):
         from jinja2 import Template
-        self._params = {} if connection_base is None else connection_base._params.copy()
+        if connection_base is not None:
+            self._params.update(connection_base._params)
+        
         if node is not None:
             params_node = node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {})
             if CONFIG_DEVICE_CONECTION_TEMPLATE in params_node:
@@ -48,33 +74,26 @@ class ConnectionSamsung2878(Connection):
             elif connection_base is None:
                 self.logger.error("ERROR: missing 'connection_template' parameter in connection section")
                 return False
+            
             if connection_base is None:
-                self._cfg.port = params_node.get(CONF_PORT, 2878)
-                self._cfg.host = params_node.get(CONF_HOST, None)
-                self._cfg.token = params_node.get(CONF_TOKEN, None)
-                self._cfg.cert = params_node.get(CONF_CERT, None)
-                self._cfg.duid = params_node.get(CONF_DUID, None)
                 if self._cfg.host is None:
-                    self.logger.error("ERROR: missing 'host' parameter in connection section")
+                    self.logger.error("ERROR: missing 'host' parameter in configuration section")
                     return False
-                if self._cfg.token is None:
-                    self.logger.error("ERROR: missing 'token' parameter in connection section")
+                if self._cfg.token is None or self._cfg.token == '':
+                    self.logger.error("ERROR: missing 'token' parameter in configuration section")
                     return False
                 if self._cfg.duid == None:
-                    mac = params_node.get(CONF_MAC, None)
-                    if mac != None:
-                        self._cfg.duid = re.sub(':', '', mac)
-                if self._cfg.duid == None:
-                    self.logger.error("ERROR: Nor 'duid' or 'mac' parameter found in connection section")
+                    self.logger.error("ERROR: missing 'mac' parameter in configuration section")
                     return False
                 if self._cfg.cert is None:
-                    self.logger.warning("WARNING: missing 'cert' parameter in connection section")
+                    self.logger.warning("WARNING: 'cert' parameter is empty, skipping certificate validation")
                 self.logger.info("Configuration, host: {}:{}".format(self._cfg.host, self._cfg.port))
                 self.logger.info("Configuration, token: {}".format(self._cfg.token))
                 self.logger.info("Configuration, duid: {}".format(self._cfg.duid))
                 self.logger.info("Configuration, cert: {}".format(self._cfg.cert))
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
             return True
+
         return False
 
     @staticmethod
@@ -82,9 +101,10 @@ class ConnectionSamsung2878(Connection):
         return type == CONNECTION_TYPE_S2878
 
     def create_updated(self, node):
-        c = ConnectionSamsung2878(self.logger)
+        c = ConnectionSamsung2878(None, self.logger)
         c._cfg = self._cfg
         c._connection_init_template = self._connection_init_template
+        c._sslSocket = self._sslSocket
         c.load_from_yaml(node, self)
         return c
 
@@ -106,7 +126,7 @@ class ConnectionSamsung2878(Connection):
             self.logger.info("Wrapping socket")
             sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
         except:
-            self.logger.error('Error creating socket')
+            self.logger.error('ERROR creating socket')
             if sslSocket is not None:
                 sslSocket.close()
                 sslSocket = None
@@ -120,11 +140,11 @@ class ConnectionSamsung2878(Connection):
                 self.logger.info("Socket created successful")
                 return sslSocket
             except:
-                self.logger.error('Error connecting socket')
+                self.logger.error('ERROR connecting socket')
                 if sslSocket is not None:
                     sslSocket.close()
         else:
-            self.logger.info("Wrapping socket FAILED")
+            self.logger.info("ERROR Wrapping socket FAILED")
 
         return None
 
@@ -138,10 +158,10 @@ class ConnectionSamsung2878(Connection):
                     if reply_str.find(CONST_STATUS_OK_STR) != -1:
                         return True
                     else:
-                        self.logger.error('Error while validating connecting, response error')
+                        self.logger.error('ERROR while validating connecting, response error')
 
             except:
-                self.logger.error('Error while validating connecting, send error')
+                self.logger.error('ERROR while validating connecting, send error')
         
         return False
 
@@ -159,7 +179,7 @@ class ConnectionSamsung2878(Connection):
 
     def execute(self, template, v):
         params = self._params
-        params.update({ 'value' : v, 'duid' : self._cfg.duid })
+        params.update({ 'value' : v })
         init_message = ''
         if self._connection_init_template is not None:
             init_message = self._connection_init_template.render(**params) + '\n'
@@ -217,7 +237,7 @@ class GetSamsung2878Status(DeviceProperty):
                 conv = xmljson.Abdera(dict_type=OrderedDict)
                 device_state = conv.data(fromstring(self._xml_status))
             except:
-                conn.logger.error("Error while converting XML to JSON")
+                conn.logger.error("ERROR while converting XML to JSON")
                 device_state = {}
 
         self._json_status = device_state
