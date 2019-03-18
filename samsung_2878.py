@@ -88,7 +88,7 @@ class ConnectionSamsung2878(Connection):
         c.load_from_yaml(node, self)
         return c
 
-    def create_socket(self, init_message):
+    def create_connection(self):
         sslSocket = None
         cfg = self._cfg
         try:
@@ -105,25 +105,57 @@ class ConnectionSamsung2878(Connection):
                 sslContext.load_cert_chain(cfg.cert)
             self.logger.info("Wrapping socket")
             sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
+        except:
+            self.logger.error('Error creating socket')
             if sslSocket is not None:
+                sslSocket.close()
+                sslSocket = None
+
+        if sslSocket is not None:
+            try:
                 self.logger.info("Connecting with {}:{}".format(cfg.host, cfg.port))
                 sslSocket.connect((cfg.host, cfg.port))
                 sslSocket.recv(1024)
                 sslSocket.recv(1024)
+                self.logger.info("Socket created successful")
+                return sslSocket
+            except:
+                self.logger.error('Error connecting socket')
+                if sslSocket is not None:
+                    sslSocket.close()
+        else:
+            self.logger.info("Wrapping socket FAILED")
+
+        return None
+
+    def validate_connection(self, sslSocket, init_message) -> bool:
+        if sslSocket is not None:
+            try:
                 sslSocket.sendall(init_message.encode('utf-8'))
                 reply = sslSocket.recv(4096)
                 if reply is not None:
                     reply_str = reply.decode("utf-8")
                     if reply_str.find(CONST_STATUS_OK_STR) != -1:
-                        return sslSocket
-            else:
-                self.logger.info("Wrapping socket FAILED")
+                        return True
+                    else:
+                        self.logger.error('Error while validating connecting, response error')
 
-        except:
-            self.logger.error('Error creating socket')
-            if sslSocket is not None:
-                sslSocket.close()
-        return None
+            except:
+                self.logger.error('Error while validating connecting, send error')
+        
+        return False
+
+    def get_socket(self, init_message):
+        sslSocket = self._sslSocket
+        if not self.validate_connection(sslSocket, init_message):
+            sslSocket = self.create_connection()
+            if not self.validate_connection(sslSocket, init_message):
+                self.logger.error("ERROR connecting to device!")
+                self._sslSocket = None
+                return None
+                
+            self._sslSocket = sslSocket
+        return sslSocket
 
     def execute(self, template, v):
         params = self._params
@@ -140,11 +172,7 @@ class ConnectionSamsung2878(Connection):
         self.logger.info(init_message)
         self.logger.info(message)
 
-        sslSocket = self._sslSocket
-        if sslSocket == None:
-            self._sslSocket = self.create_socket(init_message)
-            sslSocket = self._sslSocket
-        
+        sslSocket = self.get_socket(init_message)
         if sslSocket is not None:
             try:
                 sslSocket.sendall(message.encode('utf-8'))
@@ -153,9 +181,10 @@ class ConnectionSamsung2878(Connection):
                 return xml_response
 
             except:
-                self.logger.error('Socket error')
+                self.logger.error('ERROR sending command to device')
                 if sslSocket is not None:
                     sslSocket.close()
+                    self._sslSocket = None
 
         return xml_response
 
