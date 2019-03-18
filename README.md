@@ -15,8 +15,8 @@ Support for any unit working with REST API can be easily added via YAML configur
         ```
         - platform: climate_ip
           config_file: 'samsungrac.yaml'
-          ip_address: '192.168.1.61'
-          token: 'EfGP6z97K2'
+          ip_address: 'device_ip'
+          token: 'token'
           cert: 'ac14k_m.pem'
           config_file: 'samsungrac.yaml'
         ```
@@ -24,8 +24,8 @@ Support for any unit working with REST API can be easily added via YAML configur
         ```
         - platform: climate_ip
           config_file: 'samsungrac.yaml'
-          ip_address: '192.168.1.61'
-          token: 'EfGP6z97K2'
+          ip_address: 'device_ip'
+          token: 'token'
           cert: 'ac14k_m.pem' #set as '' to skip certificate verification
           mac: 'AB:cd:EF:gh:IJ'
           config_file: 'samsung_2878.yaml'
