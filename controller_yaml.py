@@ -122,7 +122,7 @@ class YamlController(ClimateController):
 
         with open(file, 'r') as stream:
             try:
-                yaml_device = yaml.safe_load(StreamWrapper(stream, self._token, self._ip_address))
+                yaml_device = yaml.load(StreamWrapper(stream, self._token, self._ip_address))
             except yaml.YAMLError as exc:
                 if self._logger is not None:
                     self._logger.error("YAML error: {}".format(exc))

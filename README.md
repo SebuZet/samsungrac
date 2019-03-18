@@ -13,27 +13,26 @@ Support for any unit working with REST API can be easily added via YAML configur
 3. In __configuration.yaml__ file add section:
     * For new generation units (REST API, port 8888)
         ```
-        climate:
         - platform: climate_ip
-          config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsungrac.yaml'
+          config_file: 'samsungrac.yaml'
+          ip_address: '192.168.1.61'
+          token: 'EfGP6z97K2'
+          cert: 'ac14k_m.pem'
+          config_file: 'samsungrac.yaml'
         ```
     * For old generation units:
         ```
-        climate:
         - platform: climate_ip
-          config_file: '<ha_configuration_folder>/custom_components/climate_ip/samsung_2878.yaml'
+          config_file: 'samsungrac.yaml'
+          ip_address: '192.168.1.61'
+          token: 'EfGP6z97K2'
+          cert: 'ac14k_m.pem' #set as '' to skip certificate verification
+          mac: 'AB:cd:EF:gh:IJ'
+          config_file: 'samsung_2878.yaml'
         ```
 ## Configuration
-You need to have your device __token__. Please use google to find a way to get it :-) 
-1. For new generation units (REST API, port 8888) edit __samsungrac.yaml__ configuration file to meet your settings:
-    * Replace "__ TOKEN__" string with your device __token__
-    * Replace "__ IP__ADDRESS__" string with your device IP address
-2. For old generation units edit __samsung_2878.yaml__ configuration to meet your settings:
-    * Set IP address of your device using __host__ parameter
-    * Set device token using __token__ parameter
-    * Set device MAC address using __mac__ parameter
-    * Set path to certificate file using __cert__ parameter -  remove this parameter to connect with device without certificate validation
-3. YAML configuration
+1. You need to have your device __token__. Please use google to find a way to get it :-) 
+2. YAML configuration
 You can easily add, remove or modify any device paramter to meet device capabilities.
 I hope that more detailed specification will be created *soon* :-D
 

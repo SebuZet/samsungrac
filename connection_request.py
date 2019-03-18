@@ -14,10 +14,20 @@ class ConnectionRequest(Connection):
         super(ConnectionRequest, self).__init__(hass_config, logger)
         self._params = {}
         logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
+        self.update_configuration_from_hass(hass_config)
+
+    def update_configuration_from_hass(self, hass_config):
+        if hass_config is not None:
+            cert_file = hass_config.get(CONF_CERT, None)
+            if cert_file is not None:
+                if cert_file.find('\\') == -1 and cert_file.find('/') == -1:
+                    cert_file = os.path.join(os.path.dirname(__file__), cert_file)
+
+            self._params[CONF_CERT] = cert_file
 
     def load_from_yaml(self, node, connection_base):
         if connection_base is not None:
-            self._params.update(connection_base._params)
+            self._params.update(connection_base._params.copy())
         
         if node is not None:
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))    
@@ -45,7 +55,7 @@ class ConnectionRequest(Connection):
             with requests.sessions.Session() as session:
                 self.logger.info(self._params)
                 resp = session.request(**self._params)
-                session.close()
+                self.logger.info("Command executed with code: {}".format(resp.status_code))
         
         if resp is not None and resp.ok:
             try:
@@ -54,6 +64,8 @@ class ConnectionRequest(Connection):
                 self.logger.warning("ERROR parsing response json")
                 j = {}
             return j
+        elif resp is not None:
+            self.logger.error("ERROR response status code: {}, text: {}".format(resp.status_code, resp.text))
         else:
             self.logger.error("ERROR response error")
         

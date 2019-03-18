@@ -27,6 +27,7 @@ class connection_config():
         self.token = token
         self.duid = duid
         self.cert = cert
+        self.socket = None
 
 @register_connection
 class ConnectionSamsung2878(Connection):
@@ -34,10 +35,10 @@ class ConnectionSamsung2878(Connection):
         super(ConnectionSamsung2878, self).__init__(hass_config, logger)
         self._params = {}
         self._connection_init_template = None
-        self._sslSocket = None
-        self.update_configurtionfrom_hass(hass_config)
+        self._cfg = connection_config(None, None, None, None, None)
+        self.update_configuration_from_hass(hass_config)
     
-    def update_configurtionfrom_hass(self, hass_config):
+    def update_configuration_from_hass(self, hass_config):
         if hass_config is not None:
             cert_file = hass_config.get(CONF_CERT, None)
             if cert_file == '':
@@ -65,7 +66,7 @@ class ConnectionSamsung2878(Connection):
     def load_from_yaml(self, node, connection_base):
         from jinja2 import Template
         if connection_base is not None:
-            self._params.update(connection_base._params)
+            self._params.update(connection_base._params.copy())
         
         if node is not None:
             params_node = node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {})
@@ -104,7 +105,6 @@ class ConnectionSamsung2878(Connection):
         c = ConnectionSamsung2878(None, self.logger)
         c._cfg = self._cfg
         c._connection_init_template = self._connection_init_template
-        c._sslSocket = self._sslSocket
         c.load_from_yaml(node, self)
         return c
 
@@ -123,8 +123,11 @@ class ConnectionSamsung2878(Connection):
                 sslContext.load_verify_locations(cafile = cfg.cert)
                 self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
                 sslContext.load_cert_chain(cfg.cert)
+            else:
+                self.logger.info("Cert is empty, skipping verification")
             self.logger.info("Wrapping socket")
             sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
+            self.logger.info("Socket wrapped: {}".format(True if sslSocket is not None else False))
         except:
             self.logger.error('ERROR creating socket')
             if sslSocket is not None:
@@ -135,8 +138,10 @@ class ConnectionSamsung2878(Connection):
             try:
                 self.logger.info("Connecting with {}:{}".format(cfg.host, cfg.port))
                 sslSocket.connect((cfg.host, cfg.port))
-                sslSocket.recv(1024)
-                sslSocket.recv(1024)
+                reply = sslSocket.recv(1024)
+                self.logger.info("Response: {}".format(reply.decode("utf-8")))
+                reply = sslSocket.recv(1024)
+                self.logger.info("Response: {}".format(reply.decode("utf-8")))
                 self.logger.info("Socket created successful")
                 return sslSocket
             except:
@@ -144,37 +149,42 @@ class ConnectionSamsung2878(Connection):
                 if sslSocket is not None:
                     sslSocket.close()
         else:
-            self.logger.info("ERROR Wrapping socket FAILED")
+            self.logger.info("ERROR Wrapping socket")
 
         return None
 
-    def validate_connection(self, sslSocket, init_message) -> bool:
+    def validate_connection(self, sslSocket, init_message):
         if sslSocket is not None:
             try:
+                self.logger.info("Sending init message: {}".format(init_message))
                 sslSocket.sendall(init_message.encode('utf-8'))
+                self.logger.info("Message sent")
                 reply = sslSocket.recv(4096)
                 if reply is not None:
                     reply_str = reply.decode("utf-8")
+                    self.logger.info("Response: {}".format(reply_str))
                     if reply_str.find(CONST_STATUS_OK_STR) != -1:
                         return True
                     else:
-                        self.logger.error('ERROR while validating connecting, response error')
+                        self.logger.error('ERROR while validating connection, response error')
 
             except:
-                self.logger.error('ERROR while validating connecting, send error')
+                self.logger.error('ERROR while validating connection, send error')
         
         return False
 
     def get_socket(self, init_message):
-        sslSocket = self._sslSocket
+        sslSocket = self._cfg.socket
         if not self.validate_connection(sslSocket, init_message):
             sslSocket = self.create_connection()
             if not self.validate_connection(sslSocket, init_message):
                 self.logger.error("ERROR connecting to device!")
-                self._sslSocket = None
+                self._cfg.socket = None
                 return None
                 
-            self._sslSocket = sslSocket
+            self.logger.info("Socket created")
+            self._cfg.socket = sslSocket
+        
         return sslSocket
 
     def execute(self, template, v):
@@ -189,10 +199,9 @@ class ConnectionSamsung2878(Connection):
             message = template.render(**params) + '\n'
 
         xml_response = None
+        sslSocket = self.get_socket(init_message)
         self.logger.info(init_message)
         self.logger.info(message)
-
-        sslSocket = self.get_socket(init_message)
         if sslSocket is not None:
             try:
                 sslSocket.sendall(message.encode('utf-8'))
@@ -204,7 +213,7 @@ class ConnectionSamsung2878(Connection):
                 self.logger.error('ERROR sending command to device')
                 if sslSocket is not None:
                     sslSocket.close()
-                    self._sslSocket = None
+                    self._cfg.socket = None
 
         return xml_response
 

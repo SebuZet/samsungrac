@@ -10,8 +10,6 @@ device:
     type: 'json_status'
     connection:
       params: { method : 'GET', url: 'https://__CLIMATE_IP_HOST__:8888/devices' }
-    status_template: '{{ device_state.Devices.0 }}'
-    #status_template: '{{ device_state }}'
   operations:
     operation: # operation_mode
       type: list
@@ -23,7 +21,7 @@ device:
         dry: { value : 'Dry', connection: { params: { json: { "modes": ["Dry"] } } } }
         fan_only: { value : 'Wind', connection: { params: { json: { "modes": ["Wind"] } } } }
         auto: { value : 'Auto', connection: { params: { json: { "modes": ["Auto"] } } } }
-      status_template: '{{ device_state.Mode.modes.0 }}'
+      status_template: '{{ device_state.Devices.0.Mode.modes.0 }}'
     power:
       type: switch
       connection:
@@ -31,7 +29,7 @@ device:
       values:
         'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
         'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
-      status_template: '{{ device_state.Operation.power }}'
+      status_template: '{{ device_state.Devices.0.Operation.power }}'
     purify:
       type: switch
       connection:
@@ -39,7 +37,7 @@ device:
       values:
         'off': { value: 'Spi_Off', connection: { params: { json: { "options": [ "Spi_Off"] } } } }
         'on': { value: 'Spi_On', connection: { params: { json: { "options": [ "Spi_On"] } } } }
-      status_template: '{{ device_state.Mode.options.3 }}'
+      status_template: '{{ device_state.Devices.0.Mode.options.3 }}'
     auto_clean:
       type: switch
       connection:
@@ -47,7 +45,7 @@ device:
       values:
         'off': { value: 'Autoclean_Off', connection: { params: { json: { "options": [ "Autoclean_Off"] } } } }
         'on': { value: 'Autoclean_On', connection: { params: { json: { "options": [ "Autoclean_On"] } } } }
-      status_template: '{{ device_state.Mode.options.2 }}'
+      status_template: '{{ device_state.Devices.0.Mode.options.2 }}'
     beep:
       type: switch
       connection:
@@ -55,7 +53,7 @@ device:
       values:
         'off': { value: 'Volume_Mute', connection: { params: { json: { "options": [ "Volume_Mute"] } } } }
         'on': { value: 'Volume_100', connection: { params: { json: { "options": [ "Volume_100"] } } } }
-      status_template: '{{ device_state.Mode.options.14 }}'
+      status_template: '{{ device_state.Devices.0.Mode.options.14 }}'
     special: # special_mode
       type: list
       connection:
@@ -68,7 +66,7 @@ device:
         'comfort': { value : 'Comode_Comfort', connection: { params: { json: { "options": ["Comode_Comfort"] } } } }
         'quiet': { value : 'Comode_Quiet', connection: { params: { json: { "options": ["Comode_Quiet"] } } } }
         'smart': { value : 'Comode_Smart', connection: { params: { json: { "options": ["Comode_Smart"] } } } }
-      status_template: '{{ device_state.Mode.options.0 }}'
+      status_template: '{{ device_state.Devices.0.Mode.options.0 }}'
     fan: # fan_mode
       type: list
       connection:
@@ -79,7 +77,7 @@ device:
         'medium': { value : '2', connection: { params: { json: { "speedLevel": 2 } } } }
         'high': { value : '3', connection: { params: { json: { "speedLevel": 3 } } } }
         'turbo': { value : '4', connection: { params: { json: { "speedLevel": 4 } } } }
-      status_template: '{{ device_state.Wind.speedLevel }}'
+      status_template: '{{ device_state.Devices.0.Wind.speedLevel }}'
     fan_max: # fan_max_mode
       type: list
       connection:
@@ -90,7 +88,7 @@ device:
         'medium': { value : '2', connection: { params: { json: { "maxSpeedLevel": 2 } } } }
         'high': { value : '3', connection: { params: { json: { "maxSpeedLevel": 3 } } } }
         'turbo': { value : '4', connection: { params: { json: { "maxSpeedLevel": 4 } } } }
-      status_template: '{{ device_state.Wind.maxSpeedLevel }}'
+      status_template: '{{ device_state.Devices.0.Wind.maxSpeedLevel }}'
     swing: # swing_mode
       type: list
       connection:
@@ -100,14 +98,14 @@ device:
         'up_down': { value : "Up_And_Low", connection: { params: { json: { "direction": "Up_And_Low" } } } }
         'left_right': { value : "Left_And_Right", connection: { params: { json: { "direction": "Left_And_Right" } } } }
         'all': { value : "All", connection: { params: { json: { "direction": "All" } } } }
-      status_template: '{{ device_state.Wind.direction }}'
+      status_template: '{{ device_state.Devices.0.Wind.direction }}'
     good_sleep:
       type: number
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/mode'  }
       min: 0
       max: 24
-      status_template: '{{ device_state.Mode.options.1[6::] }}'
+      status_template: '{{ device_state.Devices.0.Mode.options.1[6::] }}'
       connection_template: '{ "json": { "options": ["Sleep_{{ value | int }}"] } }'
     temperature:
       type: number
@@ -115,7 +113,7 @@ device:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
       max: 32
-      status_template: '{{ device_state.Temperatures.0.desired | int }}'
+      status_template: '{{ device_state.Devices.0.Temperatures.0.desired | int }}'
       connection_template: '{ "json": { "desired": {{ value | int }} } }'
     target_temp_high:
       type: number
@@ -123,7 +121,7 @@ device:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
       max: 32
-      status_template: '{{ device_state.Temperatures.0.maximum | int }}'
+      status_template: '{{ device_state.Devices.0.Temperatures.0.maximum | int }}'
       connection_template: '{ "json": { "maximum": {{ value | int }} } }'
     target_temp_low:
       type: number
@@ -131,12 +129,12 @@ device:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
       max: 32
-      status_template: '{{ device_state.Temperatures.0.minimum | int }}'
+      status_template: '{{ device_state.Devices.0.Temperatures.0.minimum | int }}'
       connection_template: '{ "json": { "minimum": {{ value | int }} } }'
   attributes:
     current_temperature:
       type: number
-      status_template: '{{ device_state.Temperatures.0.current }}'
+      status_template: '{{ device_state.Devices.0.Temperatures.0.current }}'
     min_temp:
       type: number
       status_template: '16'
