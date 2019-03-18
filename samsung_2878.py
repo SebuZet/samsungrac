@@ -36,6 +36,7 @@ class ConnectionSamsung2878(Connection):
         self._params = {}
         self._cfg = connection_config(None, None, None, None)
         self._connection_init_template = None
+        self._sslSocket = None
         
     def load_from_yaml(self, node, connection_base):
         from jinja2 import Template
@@ -138,7 +139,12 @@ class ConnectionSamsung2878(Connection):
         xml_response = None
         self.logger.info(init_message)
         self.logger.info(message)
-        sslSocket = self.create_socket(init_message)
+
+        sslSocket = self._sslSocket
+        if sslSocket == None:
+            self._sslSocket = self.create_socket(init_message)
+            sslSocket = self._sslSocket
+        
         if sslSocket is not None:
             try:
                 sslSocket.sendall(message.encode('utf-8'))
@@ -151,10 +157,6 @@ class ConnectionSamsung2878(Connection):
                 if sslSocket is not None:
                     sslSocket.close()
 
-            finally:
-                if sslSocket is not None:
-                    sslSocket.close()
-        
         return xml_response
 
 @register_status_getter
