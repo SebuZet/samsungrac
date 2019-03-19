@@ -12,7 +12,11 @@ from homeassistant.helpers.service import extract_entity_ids
 import homeassistant.helpers.entity_component
 import homeassistant.helpers.config_validation as cv
 
-from homeassistant.components.climate.const import (ATTR_MAX_TEMP, ATTR_MIN_TEMP)
+from homeassistant.components.climate.const import (
+    ATTR_MAX_TEMP, ATTR_MIN_TEMP,
+    SUPPORT_TARGET_TEMPERATURE, SUPPORT_TARGET_TEMPERATURE_LOW, SUPPORT_TARGET_TEMPERATURE_HIGH,
+    SUPPORT_FAN_MODE, SUPPORT_OPERATION_MODE, SUPPORT_SWING_MODE, SUPPORT_ON_OFF,
+)   
 
 from homeassistant.components.climate import (ClimateDevice, DOMAIN,
     ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, ATTR_CURRENT_TEMPERATURE,
@@ -27,7 +31,7 @@ from homeassistant.const import (
     STATE_OFF, STATE_ON, 
     CONF_IP_ADDRESS, CONF_TOKEN, CONF_MAC
 )
-
+ 
 from .yaml_const import (DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, CONF_CONTROLLER,
 )
 
@@ -41,6 +45,15 @@ import asyncio
 
 from .controller import (ATTR_POWER, ClimateController, create_controller)
 
+SUPPORTED_FEATURES_MAP = {
+    ATTR_TEMPERATURE : SUPPORT_TARGET_TEMPERATURE,
+    ATTR_TARGET_TEMP_HIGH : SUPPORT_TARGET_TEMPERATURE_HIGH,
+    ATTR_TARGET_TEMP_LOW : SUPPORT_TARGET_TEMPERATURE_LOW,
+    ATTR_FAN_MODE : SUPPORT_FAN_MODE,
+    ATTR_OPERATION_MODE : SUPPORT_OPERATION_MODE,
+    ATTR_SWING_MODE : SUPPORT_SWING_MODE,
+    ATTR_POWER : SUPPORT_ON_OFF,
+}
 
 DEFAULT_CONF_CERT_FILE = 'ac14k_m.pem'
 DEFAULT_CONF_TEMP_UNIT = TEMP_CELSIUS
@@ -116,10 +129,18 @@ class ClimateIP(ClimateDevice):
 
     def __init__(self, rac_controller):
         self.rac = rac_controller
+        features = 0
+        for f in SUPPORTED_FEATURES_MAP.keys():
+            if f in self.rac.operations:
+                features |= SUPPORTED_FEATURES_MAP[f]
+        for f in SUPPORTED_FEATURES_MAP.keys():
+            if f in self.rac.attributes:
+                features |= SUPPORTED_FEATURES_MAP[f]
+        self._supported_features = features
 
     @property
     def supported_features(self):
-        return self.rac.supported_features
+        return self._supported_features
 
     @property
     def min_temp(self):

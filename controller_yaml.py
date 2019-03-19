@@ -25,10 +25,7 @@ from .connection import (
 from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, ATTR_SWING_MODE, ATTR_FAN_MODE, ATTR_OPERATION_MODE
     )
-from homeassistant.components.climate.const import (
-    SUPPORT_TARGET_TEMPERATURE, SUPPORT_TARGET_TEMPERATURE_LOW, SUPPORT_TARGET_TEMPERATURE_HIGH,
-    SUPPORT_FAN_MODE, SUPPORT_OPERATION_MODE, SUPPORT_SWING_MODE, SUPPORT_ON_OFF, SUPPORT_ON_OFF
-    )
+
 from homeassistant.const import (
     TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_NAME, ATTR_TEMPERATURE,
     CONF_IP_ADDRESS, CONF_TEMPERATURE_UNIT, CONF_TOKEN,
@@ -39,16 +36,6 @@ from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_component
 import voluptuous as vol
-
-SUPPORTED_FEATURES_MAP = {
-    ATTR_TEMPERATURE : SUPPORT_TARGET_TEMPERATURE,
-    ATTR_TARGET_TEMP_HIGH : SUPPORT_TARGET_TEMPERATURE_HIGH,
-    ATTR_TARGET_TEMP_LOW : SUPPORT_TARGET_TEMPERATURE_LOW,
-    ATTR_FAN_MODE : SUPPORT_FAN_MODE,
-    ATTR_OPERATION_MODE : SUPPORT_OPERATION_MODE,
-    ATTR_SWING_MODE : SUPPORT_SWING_MODE,
-    ATTR_POWER : SUPPORT_ON_OFF,
-}
 
 CONST_CONTROLLER_TYPE = 'yaml'
 
@@ -88,13 +75,14 @@ class YamlController(ClimateController):
         super(YamlController, self).__init__(config, logger)
         self._logger = logger
         self._operations = {}
+        self._operations_list = []
         self._properties = {}
+        self._properties_list = []
         self._name = CONST_CONTROLLER_TYPE
         self._friendly_name = None
         self._attributes = { 'controller' : self.id }
         self._state_getter = None
         self._debug = config.get('debug', False)
-        self._supported_features = 0
         self._temp_unit = TEMP_CELSIUS
         self._service_schema_map = { vol.Optional(ATTR_ENTITY_ID) : cv.comp_entity_ids }
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
@@ -178,8 +166,8 @@ class YamlController(ClimateController):
                 self._operations = ops
             ops = {}
 
-        for f in SUPPORTED_FEATURES_MAP.keys():
-            self._supported_features |= (SUPPORTED_FEATURES_MAP[f] if self.get_property(f) is not None else 0)
+        self._operations_list = [v for v in self._operations.keys() ]
+        self._properties_list = [v for v in self._properties.keys() ]
         
         return ((len(self._operations) + len(self._properties)) > 0)
 
@@ -247,9 +235,16 @@ class YamlController(ClimateController):
         return state == STATE_ON if state is not None else None
 
     @property
-    def supported_features(self):
-        return self._supported_features
-
-    @property
     def service_schema_map(self):
         return self._service_schema_map
+
+    @property
+    def operations(self):
+        """ Return a list of available operations """
+        return self._operations_list
+
+    @property
+    def attributes(self):
+        """ Return a list of available attributes """
+        return self._properties_list
+

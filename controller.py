@@ -47,12 +47,18 @@ class ClimateController:
         return None
 
     @property
-    def supported_features(self):
-        raise NotImplementedError()
-
-    @property
     def service_schema_map(self):
         return None
+
+    @property
+    def operations(self):
+        """ Return a list of available operations """
+        return []
+
+    @property
+    def attributes(self):
+        """ Return a list of available attributes """
+        return []
 
 def register_controller(controller):
     """Decorate a function to register a controller."""
