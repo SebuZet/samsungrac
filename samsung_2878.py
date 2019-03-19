@@ -164,6 +164,7 @@ class ConnectionSamsung2878(Connection):
                     reply_str = reply.decode("utf-8")
                     self.logger.info("Response: {}".format(reply_str))
                     if reply_str.find(CONST_STATUS_OK_STR) != -1:
+                        self.logger.info('Connection status OK')
                         return True
                     else:
                         self.logger.error('ERROR while validating connection, response error')
@@ -175,14 +176,14 @@ class ConnectionSamsung2878(Connection):
 
     def get_socket(self, init_message):
         sslSocket = self._cfg.socket
-        if not self.validate_connection(sslSocket, init_message):
+        if sslSocket is None:
             sslSocket = self.create_connection()
             if not self.validate_connection(sslSocket, init_message):
                 self.logger.error("ERROR connecting to device!")
                 self._cfg.socket = None
                 return None
                 
-            self.logger.info("Socket created")
+            self.logger.info("Socket created!")
             self._cfg.socket = sslSocket
         
         return sslSocket
