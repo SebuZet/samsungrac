@@ -133,6 +133,7 @@ class ConnectionSamsung2878(Connection):
             if sslSocket is not None:
                 sslSocket.close()
                 sslSocket = None
+            traceback.print_exc()
 
         if sslSocket is not None:
             try:
@@ -148,6 +149,7 @@ class ConnectionSamsung2878(Connection):
                 self.logger.error('ERROR connecting socket')
                 if sslSocket is not None:
                     sslSocket.close()
+                traceback.print_exc()
         else:
             self.logger.info("ERROR Wrapping socket")
 
@@ -171,6 +173,7 @@ class ConnectionSamsung2878(Connection):
 
             except:
                 self.logger.error('ERROR while validating connection, send error')
+                traceback.print_exc()
         
         return False
 
@@ -201,13 +204,13 @@ class ConnectionSamsung2878(Connection):
 
         xml_response = None
         sslSocket = self.get_socket(init_message)
-        self.logger.info(init_message)
-        self.logger.info(message)
         if sslSocket is not None:
             try:
+                self.logger.info("Sending command: {}".format(message))
                 sslSocket.sendall(message.encode('utf-8'))
+                self.logger.info("Message sent")
                 xml_response = sslSocket.recv(4096).decode("utf-8")
-                sslSocket.close()
+                self.logger.info("Response: {}".format(xml_response))
                 return xml_response
 
             except:
@@ -215,7 +218,9 @@ class ConnectionSamsung2878(Connection):
                 if sslSocket is not None:
                     sslSocket.close()
                     self._cfg.socket = None
-
+                traceback.print_exc()
+        else:
+            self.logger.error('ERROR socket not created')
         return xml_response
 
 @register_status_getter
