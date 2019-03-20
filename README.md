@@ -18,17 +18,23 @@ Support for any unit working with REST API can be easily added via YAML configur
           ip_address: 'device_ip'
           token: 'token'
           cert: 'ac14k_m.pem'
-          config_file: 'samsungrac.yaml'
+        ```
+    * For MIM-H03 controller (REST API, port 8888)
+        ```
+        - platform: climate_ip
+          config_file: 'mim-h03_heatpump.yaml'
+          ip_address: 'device_ip'
+          token: 'token'
+          cert: 'ac14k_m.pem'
         ```
     * For old generation units:
         ```
         - platform: climate_ip
-          config_file: 'samsungrac.yaml'
+          config_file: 'samsung_2878.yaml'
           ip_address: 'device_ip'
           token: 'token'
           cert: 'ac14k_m.pem' #set as '' to skip certificate verification
           mac: 'AB:cd:EF:gh:IJ'
-          config_file: 'samsung_2878.yaml'
         ```
 ## Configuration
 1. You need to have your device __token__. Please use google to find a way to get it :-) 
