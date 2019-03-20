@@ -59,7 +59,7 @@ device:
       status_template: '{{ device_state.Temperatures.2.current }}'
     min_temp:
       type: number
-      status_template: '16'
+      status_template: '{{ device_state.Temperatures.0.minimum }}'
     max_temp:
       type: number
-      status_template: '55'
+      status_template: '{{ device_state.Temperatures.0.maximum }}'
