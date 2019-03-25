@@ -286,7 +286,7 @@ class NumericOperation(DeviceOperation):
         try:
             f = float(self._value)
         except:
-            f = -1000 
+            f = None
         return f
 
     @property
