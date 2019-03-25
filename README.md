@@ -4,6 +4,7 @@ This component is able to work with any AC unit which can be controlled with RES
 At this moment it is configured to work with:
 * Samsung AC units available at port 8888 (new generation, REST API)
 * Samsung AC units available at port 2878 (old generation, socket communication)
+* Samsung MIM-H03 controller (REST API, port 8888)
 
 Support for any unit working with REST API can be easily added via YAML configuration file.
 
