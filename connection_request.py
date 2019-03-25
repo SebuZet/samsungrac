@@ -12,7 +12,7 @@ CONNECTION_TYPE_REQUEST_PRINT = 'request_print'
 class ConnectionRequest(Connection):
     def __init__(self, hass_config, logger):
         super(ConnectionRequest, self).__init__(hass_config, logger)
-        self._params = {}
+        self._params = { 'timeout' : 5 }
         logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
         self.update_configuration_from_hass(hass_config)
 
@@ -77,7 +77,7 @@ test_json = {'Alarms':[{'alarmType':'Device','code':'FilterAlarm','id':'0','trig
 class ConnectionRequestPrint(Connection):
     def __init__(self, hass_config, logger):
         super(ConnectionRequestPrint, self).__init__(hass_config, logger)
-        self._params = {}
+        self._params = { 'timeout' : 5 }
 
     def load_from_yaml(self, node, connection_base):
         if connection_base is not None:
