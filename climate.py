@@ -61,7 +61,7 @@ DEFAULT_CONF_CONTROLLER = 'yaml'
 
 SCAN_INTERVAL = timedelta(seconds=15)
 
-REQUIREMENTS = ['requests>=2.21.0', 'xmljson>=0.2.0']
+REQUIREMENTS = ['requests>=2.21.0']
 
 CLIMATE_IP_DATA = 'climate_ip_data'
 ENTITIES = 'entities'

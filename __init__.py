@@ -9,7 +9,6 @@ from .connection_request import (
 
 from .samsung_2878 import (
     ConnectionSamsung2878, 
-    GetSamsung2878Status,
     )
 
 from .properties import (
