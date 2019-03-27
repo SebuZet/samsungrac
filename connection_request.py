@@ -54,9 +54,13 @@ class ConnectionRequest(Connection):
             warnings.filterwarnings("ignore", category=InsecureRequestWarning)
             with requests.sessions.Session() as session:
                 self.logger.info(self._params)
-                resp = session.request(**self._params)
-                self.logger.info("Command executed with code: {}".format(resp.status_code))
-        
+                try:
+                    resp = session.request(**self._params)
+                    self.logger.info("Command executed with code: {}".format(resp.status_code))
+                except (requests.exceptions.ConnectionError, OSError):
+                    # OSError is returned when there is no route to the host
+                    resp = None
+
         if resp is not None and resp.ok:
             try:
                 j = resp.json()
