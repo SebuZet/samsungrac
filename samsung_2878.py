@@ -124,6 +124,7 @@ class ConnectionSamsung2878(Connection):
     def handle_response_invalidate_account(self, sslSocket, response):
         if sslSocket is not None:
             if self._connection_init_template is not None:
+                params = self._params
                 init_message = self._connection_init_template.render(**params) + '\n'
                 self.logger.info("Sending auth command: {}".format(init_message))
                 sslSocket.sendall(init_message.encode('utf-8'))
