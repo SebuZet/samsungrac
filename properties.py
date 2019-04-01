@@ -1,15 +1,16 @@
 import json
 import homeassistant.helpers.config_validation as cv
+from homeassistant.util.temperature import convert as convert_temperature
 from .yaml_const import (
     CONFIG_DEVICE_STATUS_TEMPLATE, CONFIG_DEVICE_CONECTION_TEMPLATE, CONFIG_DEVICE_VALIDATION_TEMPLATE,
     CONFIG_TYPE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_OPERATION_VALUES, CONFIG_DEVICE_OPERATION_VALUE, 
-    CONFIG_DEVICE_OPERATION_NUMBER_MIN, CONFIG_DEVICE_OPERATION_NUMBER_MAX
+    CONFIG_DEVICE_OPERATION_NUMBER_MIN, CONFIG_DEVICE_OPERATION_NUMBER_MAX, CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE,
     )
 
 from .connection import (Connection)
 
 from homeassistant.const import (
-    STATE_UNKNOWN, STATE_OFF, STATE_ON, 
+    STATE_UNKNOWN, STATE_OFF, STATE_ON, TEMP_CELSIUS, TEMP_FAHRENHEIT, 
 )
 
 CLIMATE_IP_PROPERTIES = []
@@ -18,7 +19,19 @@ CLIMATE_IP_STATUS_GETTER = []
 PROPERTY_TYPE_MODE = 'list'
 PROPERTY_TYPE_SWITCH = 'switch'
 PROPERTY_TYPE_NUMBER = 'number'
+PROPERTY_TYPE_TEMP = 'temperature'
 STATUS_GETTER_JSON = 'json_status'
+
+UNIT_MAP = {
+    'C': TEMP_CELSIUS,
+    'c': TEMP_CELSIUS,
+    'Celsius': TEMP_CELSIUS,
+    'F': TEMP_FAHRENHEIT,
+    'f': TEMP_FAHRENHEIT,
+    'Fahrenheit': TEMP_FAHRENHEIT,
+    TEMP_CELSIUS: TEMP_CELSIUS,
+    TEMP_FAHRENHEIT: TEMP_FAHRENHEIT,
+}
 
 test_json = {'Devices':[{'Alarms':[{'alarmType':'Device','code':'FilterAlarm','id':'0','triggeredTime':'2019-02-25T08:46:01'}],'ConfigurationLink':{'href':'/devices/0/configuration'},'Diagnosis':{'diagnosisStart':'Ready'},'EnergyConsumption':{'saveLocation':'/files/usage.db'},'InformationLink':{'href':'/devices/0/information'},'Mode':{'modes':['Auto'],'options':['Comode_Off','Sleep_0','Autoclean_Off','Spi_Off','FilterCleanAlarm_0','OutdoorTemp_63','CoolCapa_35','WarmCapa_40','UsagesDB_254','FilterTime_10000','OptionCode_54458','UpdateAllow_0','FilterAlarmTime_500','Function_15','Volume_100'],'supportedModes':['Cool','Dry','Wind','Auto']},'Operation':{'power':'Off'},'Temperatures':[{'current':22.0,'desired':25.0,'id':'0','maximum':30,'minimum':16,'unit':'Celsius'}],'Wind':{'direction':'Fix','maxSpeedLevel':4,'speedLevel':0},'connected':True,'description':'TP6X_RAC_16K','id':'0','name':'RAC','resources':['Alarms','Configuration','Diagnosis','EnergyConsumption','Information','Mode','Operation','Temperatures','Wind'],'type':'Air_Conditioner','uuid':'C0972729-EB73-0000-0000-000000000000'}]}
 
@@ -268,18 +281,13 @@ class SwitchOperation(BasicDeviceOperation):
 
         return False
 
-@register_property
-class NumericOperation(DeviceOperation):
+class BasicNumericOperation(DeviceOperation):
     def __init__(self, name, connection):
-        super(NumericOperation, self).__init__(name, connection)
+        super(BasicNumericOperation, self).__init__(name, connection)
         self._min = None
         self._max = None
         self._value = 0.0
  
-    @staticmethod
-    def match_type(type):
-        return type == PROPERTY_TYPE_NUMBER
-
     @property
     def value(self):
         f = 0
@@ -291,7 +299,7 @@ class NumericOperation(DeviceOperation):
 
     @property
     def config_validation_type(self):
-        return cv.positive_int
+        return cv.small_float
 
     def match_value(self, value):
         """Check if value match to operation. True if value is correct."""
@@ -302,7 +310,7 @@ class NumericOperation(DeviceOperation):
     
     def load_from_yaml(self, node):
         """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
-        if not super(NumericOperation, self).load_from_yaml(node):
+        if not super(BasicNumericOperation, self).load_from_yaml(node):
             return False
 
         if node is not None:
@@ -320,3 +328,56 @@ class NumericOperation(DeviceOperation):
             return self._max
         
         return hass_value
+
+@register_property
+class NumericOperation(BasicNumericOperation):
+    def __init__(self, name, connection):
+        super(NumericOperation, self).__init__(name, connection)
+ 
+    @staticmethod
+    def match_type(type):
+        return type == PROPERTY_TYPE_NUMBER
+
+
+@register_property
+class TemperatureOperation(BasicNumericOperation):
+    def __init__(self, name, connection):
+        super(TemperatureOperation, self).__init__(name, connection)
+        self._unit_template = None
+        self._unit = TEMP_CELSIUS
+
+    @staticmethod
+    def match_type(type):
+        return type == PROPERTY_TYPE_TEMP
+
+    def load_from_yaml(self, node):
+        from jinja2 import Template
+        """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
+        if not super(TemperatureOperation, self).load_from_yaml(node):
+            return False
+
+        if node is not None and CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE in node:
+            self._unit_template = Template(node[CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE])
+        return True
+
+    def update_state(self, device_state, debug):
+        if self._unit_template is not None:
+            unit = self._unit_template.render(device_state=device_state)
+            if unit in UNIT_MAP:
+                self._unit = UNIT_MAP[unit]
+        
+        return super(TemperatureOperation, self).update_state(device_state, debug)
+ 
+    def convert_dev_to_hass(self, dev_value):
+        """Convert device state value to HASS."""
+        return convert_temperature(float(dev_value), self._unit, TEMP_CELSIUS)
+    
+    def convert_hass_to_dev(self, hass_value):
+        v =  hass_value
+        """Convert HASS state value to device state."""
+        if self._min is not None and hass_value < self._min:
+            v = self._min
+        if self._max is not None and hass_value > self._max:
+            v = self._max
+        
+        return convert_temperature(float(v), TEMP_CELSIUS, self._unit)

@@ -6,7 +6,7 @@ from .yaml_const import (
     CONFIG_DEVICE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_STATUS,
     CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES, CONFIG_DEVICE_FRIENDLY_NAME,
     CONF_CONFIG_FILE, CONFIG_DEVICE_NAME, CONFIG_DEVICE_VALIDATE_PROPS,
-    CONFIG_DEVICE_CONNECTION_PARAMS,
+    CONFIG_DEVICE_CONNECTION_PARAMS, 
 )
 
 from .controller import (
@@ -27,7 +27,7 @@ from homeassistant.components.climate import (
     )
 
 from homeassistant.const import (
-    TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_NAME, ATTR_TEMPERATURE,
+    TEMP_CELSIUS, ATTR_NAME, ATTR_TEMPERATURE,
     CONF_IP_ADDRESS, CONF_TEMPERATURE_UNIT, CONF_TOKEN,
     STATE_ON, ATTR_ENTITY_ID,
 )
@@ -38,11 +38,6 @@ import homeassistant.helpers.entity_component
 import voluptuous as vol
 
 CONST_CONTROLLER_TYPE = 'yaml'
-
-UNIT_MAP = {
-    'C': TEMP_CELSIUS, 'c': TEMP_CELSIUS, 'Celsius': TEMP_CELSIUS, TEMP_CELSIUS : TEMP_CELSIUS,
-    'F': TEMP_FAHRENHEIT, 'f': TEMP_FAHRENHEIT, 'Fahrenheit': TEMP_FAHRENHEIT, TEMP_FAHRENHEIT : TEMP_FAHRENHEIT,
-}
 
 class StreamWrapper(object):
     def __init__(self, stream, token, ip_address):
@@ -226,8 +221,7 @@ class YamlController(ClimateController):
 
     @property
     def temperature_unit(self):
-        unit = UNIT_MAP.get(self.get_property(CONF_TEMPERATURE_UNIT), None)
-        return unit if unit is not None else self._temp_unit
+        return self._temp_unit
 
     @property
     def is_on(self):

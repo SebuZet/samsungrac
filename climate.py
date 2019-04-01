@@ -32,7 +32,9 @@ from homeassistant.const import (
     CONF_IP_ADDRESS, CONF_TOKEN, CONF_MAC
 )
  
-from .yaml_const import (DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, CONF_CONTROLLER,
+from .yaml_const import (
+    DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, 
+    CONF_CONTROLLER, CONFIG_DEVICE_FRIENDLY_NAME, CONFIG_DEVICE_NAME,
 )
 
 import voluptuous as vol
@@ -74,6 +76,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_IP_ADDRESS): cv.string,
     vol.Optional(CONF_TOKEN): cv.string,
     vol.Optional(CONF_MAC): cv.string,
+    vol.Optional(CONFIG_DEVICE_FRIENDLY_NAME): cv.string,
+    vol.Optional(CONFIG_DEVICE_NAME): cv.string,
     vol.Optional(CONF_CERT, default=DEFAULT_CONF_CERT_FILE): cv.string,
     vol.Optional(CONF_CONFIG_FILE, default=DEFAULT_CONF_CONFIG_FILE): cv.string,
     vol.Optional(CONF_TEMPERATURE_UNIT, default=DEFAULT_CONF_TEMP_UNIT): cv.string,
@@ -95,7 +99,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     if device_controller is None:
         return PlatformNotReady
 
-    async_add_entities([ClimateIP(device_controller)], True)
+    async_add_entities([ClimateIP(device_controller, config)], True)
 
     async def async_service_handler(service):
         params = {key: value for key, value in service.data.items()
@@ -127,8 +131,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 class ClimateIP(ClimateDevice):
     """Representation of a Samsung climate device."""
 
-    def __init__(self, rac_controller):
+    def __init__(self, rac_controller, config):
         self.rac = rac_controller
+        self._name = config.get(CONFIG_DEVICE_NAME, None)
+        self._friendly_name = config.get(CONFIG_DEVICE_FRIENDLY_NAME, None)
         features = 0
         for f in SUPPORTED_FEATURES_MAP.keys():
             if f in self.rac.operations:
@@ -162,8 +168,12 @@ class ClimateIP(ClimateDevice):
 
     @property
     def name(self):
-        if self.rac.friendly_name is not None:
+        if self._friendly_name is not None:
+            return self._friendly_name
+        elif self.rac.friendly_name is not None:
             return self.rac.friendly_name
+        elif self._name is not None:
+            return self._name
         elif self.rac.name is None:
             return 'climate_ip'
         else:
@@ -176,7 +186,7 @@ class ClimateIP(ClimateDevice):
         return attrs
 
     async def async_update(self):
-        time.sleep(1.5)
+        time.sleep(0.5)
         self.rac.update_state()
 
     @property

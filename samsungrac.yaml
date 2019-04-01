@@ -1,6 +1,4 @@
 device:
-  name: 'samsungrac'
-  friendly_name: "Salon AC"
   connection:
     type: request
     params: 
@@ -108,36 +106,42 @@ device:
       status_template: '{{ device_state.Devices.0.Mode.options.1[6::] }}'
       connection_template: '{ "json": { "options": ["Sleep_{{ value | int }}"] } }'
     temperature:
-      type: number
+      type: temperature
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.desired | int }}'
       connection_template: '{ "json": { "desired": {{ value | int }} } }'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     target_temp_high:
-      type: number
+      type: temperature
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.maximum | int }}'
       connection_template: '{ "json": { "maximum": {{ value | int }} } }'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     target_temp_low:
-      type: number
+      type: temperature
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.minimum | int }}'
       connection_template: '{ "json": { "minimum": {{ value | int }} } }'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
   attributes:
     current_temperature:
-      type: number
+      type: temperature
       status_template: '{{ device_state.Devices.0.Temperatures.0.current }}'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     min_temp:
-      type: number
+      type: temperature
       status_template: '16'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     max_temp:
-      type: number
+      type: temperature
       status_template: '32'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
