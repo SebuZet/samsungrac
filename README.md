@@ -48,11 +48,12 @@ Support for any unit working with REST API can be easily added via YAML configur
     | config_file      | YAML configuration filename |Yes
     | ip_address      | Device IP address (e.g. 192.178.1.200) |Yes
     | token           | Access token to the device        |Yes
-    | cert_file   | certificate file name (default: ac14k_m.pem, Use __None__ to not use certification) |No
+    | cert_file   | certificate file name (default: ac14k_m.pem, Use __None__ to not use certification) | Usually Yes
     | mac      | MAC address of device | For 2878 devices
     | friendly_name    | Device friendly name to use by HASS (e.g. "Salon AC")   | No
     | name      | Device name (by default this value is taken from YAML config file) | No
     | controller    | Controller type to use (default, and the only one for now: yaml)  | No
+    | poll      | Enable/disable state polling. Default: Taken from YAML config. Enabled for old gen devices | No
     | debug      | Enable/disable more debugs. Default: False | No
 2. You need to have your device __token__. Please use google to find a way to get it :-) 
 2. YAML configuration
