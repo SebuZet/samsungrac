@@ -61,7 +61,7 @@ class ConnectionRequestBase(Connection):
                 self.logger.info(self._params)
                 try:
                     resp = session.request(**self._params)
-                    self.logger.info("Command executed with code: {}".format(resp.status_code))
+                    self.logger.info("Command executed with code: {}, text: {}".format(resp.status_code, resp.text))
                 except:
                     # something goes wrong, print callstack and return None
                     self.logger.error("Request execution failed. Stack trace:")
@@ -69,11 +69,14 @@ class ConnectionRequestBase(Connection):
                     return (None, False, 0)
 
         if resp and resp.ok:
-            try:
-                j = resp.json()
-                return (j, True, resp.status_code)
-            except:
-                self.logger.warning("Parsing response json failed!")
+            if resp.status_code == 200:
+                try:
+                    j = resp.json()
+                    return (j, True, resp.status_code)
+                except:
+                    self.logger.warning("Parsing response json failed!")
+            else:
+                return ({}, True, resp.status_code)
 
         elif resp:
             self.logger.error("Execution failed, status code: {}, text: {}".format(resp.status_code, resp.text))

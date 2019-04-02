@@ -1,4 +1,5 @@
 device:
+  poll: False
   connection:
     type: request
     params: 
@@ -106,7 +107,7 @@ device:
       status_template: '{{ device_state.Devices.0.Mode.options.1[6::] }}'
       connection_template: '{ "json": { "options": ["Sleep_{{ value | int }}"] } }'
     temperature:
-      type: temperature
+      type: number
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
@@ -115,7 +116,7 @@ device:
       connection_template: '{ "json": { "desired": {{ value | int }} } }'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     target_temp_high:
-      type: temperature
+      type: number
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
@@ -124,7 +125,7 @@ device:
       connection_template: '{ "json": { "maximum": {{ value | int }} } }'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     target_temp_low:
-      type: temperature
+      type: number
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
       min: 16
@@ -134,14 +135,14 @@ device:
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
   attributes:
     current_temperature:
-      type: temperature
+      type: number
       status_template: '{{ device_state.Devices.0.Temperatures.0.current }}'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     min_temp:
-      type: temperature
+      type: number
       status_template: '16'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     max_temp:
-      type: temperature
+      type: number
       status_template: '32'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'

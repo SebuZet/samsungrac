@@ -1,6 +1,6 @@
 device:
   name: 'samsungrac'
-  friendly_name: "Salon AC"
+  poll: True
   #validate_properties: True
   connection:
     type: samsung_2878

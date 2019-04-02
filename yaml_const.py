@@ -1,5 +1,7 @@
 CONFIG_DEVICE = 'device'
 CONFIG_DEVICE_NAME = 'name'
+CONFIG_DEVICE_POLL = 'poll'
+CONFIG_DEVICE_UPDATE_DELAY = 'update_delay'
 CONFIG_DEVICE_FRIENDLY_NAME = 'friendly_name'
 CONFIG_DEVICE_VALIDATE_PROPS = 'validate_properties'
 CONFIG_DEVICE_CONNECTION = 'connection'

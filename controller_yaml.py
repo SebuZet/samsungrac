@@ -6,7 +6,7 @@ from .yaml_const import (
     CONFIG_DEVICE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_STATUS,
     CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES, CONFIG_DEVICE_FRIENDLY_NAME,
     CONF_CONFIG_FILE, CONFIG_DEVICE_NAME, CONFIG_DEVICE_VALIDATE_PROPS,
-    CONFIG_DEVICE_CONNECTION_PARAMS, 
+    CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_DEVICE_POLL,
 )
 
 from .controller import (
@@ -87,7 +87,12 @@ class YamlController(ClimateController):
         self._config = config
         self._retries_count = 0
         self._last_device_state = None
-        
+        self._poll = None
+
+    @property
+    def poll(self):
+        return self._poll
+       
     @property
     def id(self):
         return CONST_CONTROLLER_TYPE
@@ -120,6 +125,7 @@ class YamlController(ClimateController):
         validate_props = False
         if CONFIG_DEVICE in yaml_device:
             ac = yaml_device.get(CONFIG_DEVICE, {})
+            self._poll = ac.get(CONFIG_DEVICE_POLL, None)
             validate_props = ac.get(CONFIG_DEVICE_VALIDATE_PROPS, False)
             self._logger.info("Validate properties: {} ({})".format(validate_props, ac.get(CONFIG_DEVICE_VALIDATE_PROPS, False)))
             connection_node = ac.get(CONFIG_DEVICE_CONNECTION, {})
