@@ -138,7 +138,8 @@ class DeviceProperty:
         v = STATE_UNKNOWN
         if self.status_template is not None and device_state is not None:
             v = self.status_template.render(device_state=device_state)
-        self._value = self.convert_dev_to_hass(v)
+        if v is not STATE_UNKNOWN:
+            self._value = self.convert_dev_to_hass(v)
         return self.value
  
     @property
@@ -161,15 +162,19 @@ class GetJsonStatus(DeviceProperty):
         device_state = self.get_connection(None).execute(None, None)
         self._value = device_state
         self._json_status = device_state
-        self._attrs = { 'device_state' : json.dumps(device_state) }
-        if self.status_template is not None and device_state is not None:
-            try:
-                v = self.status_template.render(device_state=device_state)
-                v = v.replace("'", '"')
-                v = v.replace("True", '"True"')
-                self._value = json.loads(v)
-            except:
-                self._value = device_state
+        if device_state is not None:
+            self._attrs = { 'device_state' : json.dumps(device_state) }
+            if self.status_template is not None:
+                try:
+                    v = self.status_template.render(device_state=device_state)
+                    v = v.replace("'", '"')
+                    v = v.replace("True", '"True"')
+                    self._value = json.loads(v)
+                except:
+                    pass # do nothing
+        else:
+            self._attrs = { 'device_state' : None }
+
         return self.value
 
     @property
@@ -361,10 +366,13 @@ class TemperatureOperation(BasicNumericOperation):
         return True
 
     def update_state(self, device_state, debug):
-        if self._unit_template is not None:
-            unit = self._unit_template.render(device_state=device_state)
-            if unit in UNIT_MAP:
-                self._unit = UNIT_MAP[unit]
+        if self._unit_template is not None and device_state is not None:
+            try:
+                unit = self._unit_template.render(device_state=device_state)
+                if unit in UNIT_MAP:
+                    self._unit = UNIT_MAP[unit]
+            except:
+                pass # skip temperature unit rendering
         
         return super(TemperatureOperation, self).update_state(device_state, debug)
  

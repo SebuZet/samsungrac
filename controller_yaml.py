@@ -38,6 +38,7 @@ import homeassistant.helpers.entity_component
 import voluptuous as vol
 
 CONST_CONTROLLER_TYPE = 'yaml'
+CONST_MAX_GET_STATUS_RETRIES = 4
 
 class StreamWrapper(object):
     def __init__(self, stream, token, ip_address):
@@ -74,7 +75,6 @@ class YamlController(ClimateController):
         self._properties = {}
         self._properties_list = []
         self._name = CONST_CONTROLLER_TYPE
-        self._friendly_name = None
         self._attributes = { 'controller' : self.id }
         self._state_getter = None
         self._debug = config.get('debug', False)
@@ -85,6 +85,8 @@ class YamlController(ClimateController):
         self._ip_address = config.get(CONF_IP_ADDRESS, None)
         self._token = config.get(CONF_TOKEN, None)
         self._config = config
+        self._retries_count = 0
+        self._last_device_state = None
         
     @property
     def id(self):
@@ -146,7 +148,6 @@ class YamlController(ClimateController):
                     self._properties[prop.id] = prop
 
             self._name = ac.get(ATTR_NAME, CONST_CONTROLLER_TYPE)
-            self._friendly_name = ac.get(CONFIG_DEVICE_FRIENDLY_NAME, None)
 
         self.update_state()
 
@@ -176,19 +177,22 @@ class YamlController(ClimateController):
         return device_name if device_name is not None else self._name
 
     @property
-    def friendly_name(self):
-        return self._friendly_name
-        
-    @property
     def debug(self):
         return self._debug
         
     def update_state(self):
         debug = self._debug
         if self._state_getter is not None:
+            self._attributes = { ATTR_NAME : self.name }
             self._state_getter.update_state(self._state_getter.value, debug)
             device_state = self._state_getter.value
-            self._attributes = { ATTR_NAME : self.name }
+            if device_state is None and self._retries_count > 0:
+                --self._retries_count
+                device_state = self._last_device_state
+                self._attributes['failed_retries'] = CONST_MAX_GET_STATUS_RETRIES - --self._retries_count
+            else:
+                self._retries_count = CONST_MAX_GET_STATUS_RETRIES
+                self._last_device_state = device_state
             if debug:
                 self._attributes.update(self._state_getter.state_attributes)
             for op in self._operations.values():

@@ -18,10 +18,6 @@ class ClimateController:
         return None
 
     @property
-    def friendly_name(self):
-        return None
-
-    @property
     def debug(self):
         return False
         

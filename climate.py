@@ -69,7 +69,7 @@ CLIMATE_IP_DATA = 'climate_ip_data'
 ENTITIES = 'entities'
 DEFAULT_CLIMATE_IP_TEMP_MIN = 16
 DEFAULT_CLIMATE_IP_TEMP_MAX = 32
-SERVICE_SET_CUSTOM_OPERATION = 'climate_ip_{}_set_property'
+SERVICE_SET_CUSTOM_OPERATION = 'climate_ip_set_property'
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -124,9 +124,15 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         if update_tasks:
             await asyncio.wait(update_tasks, loop=hass.loop)
 
-    if device_controller.service_schema_map is not None:
-        hass.services.async_register(DOMAIN, SERVICE_SET_CUSTOM_OPERATION.format(device_controller.name), 
-            async_service_handler, schema = vol.Schema(device_controller.service_schema_map))
+    service_schema = device_controller.service_schema_map if device_controller.service_schema_map else {}
+    if CLIMATE_IP_DATA in hass.data:
+        for dev in hass.data[CLIMATE_IP_DATA][ENTITIES]:
+            if dev.service_schema_map:
+                service_schema.update(dev.service_schema_map)
+
+    if service_schema is not None:
+        hass.services.async_register(DOMAIN, SERVICE_SET_CUSTOM_OPERATION, 
+            async_service_handler, schema = vol.Schema(service_schema))
 
 class ClimateIP(ClimateDevice):
     """Representation of a Samsung climate device."""
@@ -143,6 +149,10 @@ class ClimateIP(ClimateDevice):
             if f in self.rac.attributes:
                 features |= SUPPORTED_FEATURES_MAP[f]
         self._supported_features = features
+
+    @property
+    def controller(self) -> ClimateController:
+        return self.rac
 
     @property
     def supported_features(self):
@@ -183,6 +193,8 @@ class ClimateIP(ClimateDevice):
     def state_attributes(self):
         attrs = self.rac.state_attributes
         attrs.update(super(ClimateIP, self).state_attributes)
+        if self._name is not None:
+            attrs[ATTR_NAME] = self._name
         return attrs
 
     async def async_update(self):
