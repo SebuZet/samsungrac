@@ -224,7 +224,7 @@ class ConnectionSamsung2878(Connection):
         else:
             self.logger.info("ERROR Wrapping socket")
 
-    @propertry
+    @property
     def socket(self):
         sslSocket = self._cfg.socket
         if sslSocket is None:
