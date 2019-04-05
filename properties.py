@@ -304,7 +304,7 @@ class BasicNumericOperation(DeviceOperation):
 
     @property
     def config_validation_type(self):
-        return cv.small_float
+        return cv.positive_int
 
     def match_value(self, value):
         """Check if value match to operation. True if value is correct."""
