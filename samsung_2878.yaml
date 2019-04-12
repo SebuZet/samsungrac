@@ -1,7 +1,7 @@
 device:
   name: 'samsungrac'
   friendly_name: "Salon AC"
-  #validate_properties: True
+  validate_properties: True
   connection:
     type: samsung_2878
     params: 
@@ -10,7 +10,7 @@ device:
       connection_template: '<Request Type="AuthToken"><User Token="{{token}}" /></Request>'
   status:
     type: 'json_status'
-    #connection_template: '<Request Type="DeviceState" DUID="{{duid}}"></Request>'
+    connection_template: '<Request Type="DeviceState" DUID="{{duid}}"></Request>'
   operations:
     operation: # operation_mode
       type: list
@@ -36,7 +36,7 @@ device:
         'on': { value: 'On' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_ADD_SPI" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_SPI" DUID="{{duid}}"><Attr ID="AC_ADD_SPI" Value="{{value}}" /></Control></Request>'
-      #validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_SPI" %}{{valid}}{% endif %}{% endfor %}'
+      validation_template: '{% if "AC_ADD_SPI" in device_state %}valid{% endif %}'
     auto_clean:
       type: switch
       values:
@@ -44,7 +44,7 @@ device:
         'on': { value: 'On' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_ADD_AUTOCLEAN" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_AUTOCLEAN" DUID="{{duid}}"><Attr ID="AC_ADD_AUTOCLEAN" Value="{{value}}" /></Control></Request>'
-      #validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_ADD_AUTOCLEAN" %}{{valid}}{% endif %}{% endfor %}'
+      validation_template: '{% if "AC_ADD_AUTOCLEAN" in device_state %}valid{% endif %}'
     special: # special_mode
       type: list
       values: 
@@ -58,7 +58,7 @@ device:
         'wind3': { value : 'WindMode3' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_COMODE" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
-      #validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_COMODE" %}{{valid}}{% endif %}{% endfor %}'
+      validation_template: '{% if "AC_FUN_COMODE" in device_state %}valid{% endif %}'
     fan: # fan_mode
       type: list
       values: 
@@ -69,7 +69,7 @@ device:
         'turbo': { value : 'Turbo' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_WINDLEVEL" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_WINDLEVEL" DUID="{{duid}}"><Attr ID="AC_FUN_WINDLEVEL" Value="{{value}}" /></Control></Request>'
-      #validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_WINDLEVEL" %}{{valid}}{% endif %}{% endfor %}'
+      validation_template: '{% if "AC_FUN_WINDLEVEL" in device_state %}valid{% endif %}'
     swing: # swing_mode
       type: list
       values: 
@@ -79,7 +79,7 @@ device:
         'all': { value : "Rotation" }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_DIRECTION" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_DIRECTION" DUID="{{duid}}"><Attr ID="AC_FUN_DIRECTION" Value="{{value}}" /></Control></Request>'
-      #validation_template: '{% for a in device_state.Response.children.0.DeviceState.Device.children %}{% if a.Attr.attributes.ID == "AC_FUN_DIRECTION" %}{{valid}}{% endif %}{% endfor %}'
+      validation_template: '{% if "AC_FUN_DIRECTION" in device_state %}valid{% endif %}'
     temperature:
       type: number
       min: 16

@@ -1,3 +1,5 @@
+DOMAIN = 'climate_ip'
+
 from .controller_yaml import (
     YamlController,
     )
