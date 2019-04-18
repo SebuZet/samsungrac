@@ -220,19 +220,19 @@ class ConnectionSamsung2878(Connection):
             if command:
                 self.logger.info("Sending command")
                 sslSocket.sendall(command.encode('utf-8'))
-                self.logger.info("Handling response")
-                self.handle_socket_response(sslSocket)
-                self.logger.info("Handling finished")
                 command_sent = True
             else:
                 self.logger.info("Command empty, skipping sending")
                 command_sent = sslSocket is not None
+            self.logger.info("Handling socket response")
+            self.handle_socket_response(sslSocket)
+            self.logger.info("Handling finished")
         except:
             self.logger.error('Sending command failed')
             if sslSocket is not None:
                 sslSocket.close()
                 self._cfg.socket = None
-            traceback.print_exc()
+            self.logger.error(traceback.format_exc())
 
         if not command_sent and retries > 0:
             self.logger.info("Retrying sending command...")
@@ -275,16 +275,17 @@ class ConnectionSamsung2878(Connection):
             sslSocket = self._cfg.socket
             if sslSocket is None:
                 self.logger.error("Creating connecting failed!")
-            else:
-                self.logger.info("Connection created!")
         return sslSocket
 
     def execute(self, template, v):
         params = self._params
         params.update({ 'value' : v })
+        self.logger.info("Executing params: {}".format(params))
         message = v
         if template is not None:
             message = template.render(**params) + '\n'
+        elif CONFIG_DEVICE_CONECTION_TEMPLATE in params:
+            message = params[CONFIG_DEVICE_CONECTION_TEMPLATE]
 
         self.logger.info("Executing command: {}".format(message))
         self.send_socket_command(message, 1)

@@ -194,8 +194,8 @@ class YamlController(ClimateController):
             self._state_getter.update_state(self._state_getter.value, debug)
             device_state = self._state_getter.value
             self._attributes = { ATTR_NAME : self.name }
-            if debug:
-                self._attributes.update(self._state_getter.state_attributes)
+#            if debug:
+            self._attributes.update(self._state_getter.state_attributes)
             for op in self._operations.values():
                 op.update_state(device_state, debug)
                 self._attributes.update(op.state_attributes)

@@ -145,7 +145,7 @@ class GetJsonStatus(DeviceProperty):
         return type == STATUS_GETTER_JSON
 
     def update_state(self, device_state, debug):
-        device_state = self.get_connection(None).execute(None, None)
+        device_state = self.get_connection(None).execute(self.connection_template, None)
         self._value = device_state
         self._json_status = device_state
         self._attrs = { 'device_state' : json.dumps(device_state) }
