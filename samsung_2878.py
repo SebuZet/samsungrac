@@ -20,42 +20,6 @@ CONST_STATUS_OK_STR = 'Status="Okay"'
 
 xml_test = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="79"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="On"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Cool"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>'
 
-test_responses = [
-    "DPLUG-1.6",
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="InvalidateAccount"/>',
-    
-    '<?xml version="1.0" encoding="utf-8" ?><Response Type="AuthToken" Status="Okay" StartFrom="2019-02-28/22:44:12"/>',
-
-    '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="79"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="On"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Cool"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>',
-
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA64" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_POWER" Value="On" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_OUTDOOR_TEMP" Value="65" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_TEMPSET" Value="31" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_OPMODE" Value="Auto" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_OPMODE" Value="Dry" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_OPMODE" Value="Wind" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_WINDLEVEL" Value="Low" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_OPMODE" Value="Heat" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_WINDLEVEL" Value="Low" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_DIRECTION" Value="Fixed" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_OPMODE" Value="Auto" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_WINDLEVEL" Value="Auto" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_OPMODE" Value="Cool" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_DIRECTION" Value="SwingUD" /></Status></Update>',
-    '<?xml version="1.0" encoding="utf-8" ?><Update Type="Status"><Status DUID="1456E055EA12" GroupID="AC" ModelID="AC"><Attr ID="AC_FUN_POWER" Value="On" /></Status></Update>',
-
-    '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceState" Status="Okay"><DeviceState><Device DUID="XXXXXXX" GroupID="AC" ModelID="AC" ><Attr ID="AC_FUN_ENABLE" Type="RW" Value="Enable"/><Attr ID="AC_FUN_TEMPNOW" Type="R" Value="49"/><Attr ID="AC_FUN_TEMPSET" Type="RW" Value="24"/><Attr ID="AC_FUN_POWER" Type="RW" Value="Off"/><Attr ID="AC_FUN_OPMODE" Type="RW" Value="Dry"/><Attr ID="AC_FUN_WINDLEVEL" Type="RW" Value="Auto"/><Attr ID="AC_FUN_ERROR" Type="R" Value="30303030"/><Attr ID="AC_ADD_STARTWPS" Type="RW" Value="0"/><Attr ID="AC_ADD_APMODE_END" Type="W" Value="0"/></Device></DeviceState></Response>',
-    ]
-
-def get_test_resoponse(test_idx):
-    if test_idx < len(test_responses):
-        r = test_responses[test_idx]
-        test_idx = test_idx + 1
-        print("AAAAAAAA, resp: {}".format(r))
-        return r
-    print("AAAAAAAA, resp: None")
-    return None
-
 class connection_config():
     def __init__(self, host, port, token, cert, duid):
         self.host = host
@@ -75,7 +39,6 @@ class ConnectionSamsung2878(Connection):
         self._device_status = {}
         self._socket_timeout = 2 # in seconds
         self.update_configuration_from_hass(hass_config)
-#        self._test_idx = 0
     
     def update_configuration_from_hass(self, hass_config):
         if hass_config is not None:
@@ -181,7 +144,6 @@ class ConnectionSamsung2878(Connection):
             f = re.match('Attr ID="(.*)" Value="(.*)"', attr)
             if f:
                 self._device_status[f[1]] = f[2]
-#        print("handle_response_status_update: device_state: {}".format(self._device_status))
 
     def handle_response_device_state(self, sslSocket, response):
         attrs = response.split("><")
@@ -191,13 +153,10 @@ class ConnectionSamsung2878(Connection):
             if f:
                 device_status[f[1]] = f[2]
         self._device_status = device_status
-#        print("handle_response_device_state: device_state: {}".format(self._device_status))
 
     def handle_socket_response(self, sslSocket):
         reply = self.read_line_from_socket(sslSocket)
-#        reply = get_test_resoponse(self._test_idx)
         while reply:
-#            self._test_idx = self._test_idx + 1
             if reply.find('Update Type="InvalidateAccount"') != -1:
                 self.handle_response_invalidate_account(sslSocket, reply)
             elif reply.find('Response Type="AuthToken" Status="Okay"') != -1:
@@ -209,7 +168,6 @@ class ConnectionSamsung2878(Connection):
             elif reply.find('Response Type="DeviceControl" Status="Okay"') != -1:
                 pass # do we need to handle this?
             reply = self.read_line_from_socket(sslSocket)
-#            reply = get_test_resoponse(self._test_idx)
 
     def send_socket_command(self, command, retries = 1):
         sslSocket = None

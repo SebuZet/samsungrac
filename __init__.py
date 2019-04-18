@@ -18,4 +18,5 @@ from .properties import (
     ModeOperation,
     SwitchOperation,
     NumericOperation,
+    TemperatureOperation,
 )

@@ -10,15 +10,15 @@ class ClimateController:
         return False
 
     @property
+    def poll(self):
+        return None
+
+    @property
     def id(self):
         return None
 
     @property
     def name(self):
-        return None
-
-    @property
-    def friendly_name(self):
         return None
 
     @property

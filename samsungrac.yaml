@@ -1,6 +1,5 @@
 device:
-  name: 'samsungrac'
-  friendly_name: "Salon AC"
+  poll: False
   connection:
     type: request
     params: 
@@ -115,6 +114,7 @@ device:
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.desired | int }}'
       connection_template: '{ "json": { "desired": {{ value | int }} } }'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     target_temp_high:
       type: number
       connection:
@@ -123,6 +123,7 @@ device:
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.maximum | int }}'
       connection_template: '{ "json": { "maximum": {{ value | int }} } }'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     target_temp_low:
       type: number
       connection:
@@ -131,13 +132,17 @@ device:
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.minimum | int }}'
       connection_template: '{ "json": { "minimum": {{ value | int }} } }'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
   attributes:
     current_temperature:
       type: number
       status_template: '{{ device_state.Devices.0.Temperatures.0.current }}'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     min_temp:
       type: number
       status_template: '16'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     max_temp:
       type: number
       status_template: '32'
+      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'

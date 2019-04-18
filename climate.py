@@ -32,7 +32,10 @@ from homeassistant.const import (
     CONF_IP_ADDRESS, CONF_TOKEN, CONF_MAC
 )
  
-from .yaml_const import (DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, CONF_CONTROLLER,
+from .yaml_const import (
+    DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, 
+    CONF_CONTROLLER, CONFIG_DEVICE_FRIENDLY_NAME, CONFIG_DEVICE_NAME,
+    CONFIG_DEVICE_POLL, CONFIG_DEVICE_UPDATE_DELAY, 
 )
 
 import voluptuous as vol
@@ -61,24 +64,29 @@ DEFAULT_CONF_CONTROLLER = 'yaml'
 
 SCAN_INTERVAL = timedelta(seconds=15)
 
-REQUIREMENTS = ['requests>=2.21.0']
+REQUIREMENTS = ['requests>=2.21.0', 'xmljson>=0.2.0']
 
 CLIMATE_IP_DATA = 'climate_ip_data'
 ENTITIES = 'entities'
 DEFAULT_CLIMATE_IP_TEMP_MIN = 16
 DEFAULT_CLIMATE_IP_TEMP_MAX = 32
-SERVICE_SET_CUSTOM_OPERATION = 'climate_ip_{}_set_property'
+DEFAULT_UPDATE_DELAY = 1.5
+SERVICE_SET_CUSTOM_OPERATION = 'climate_ip_set_property'
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_IP_ADDRESS): cv.string,
     vol.Optional(CONF_TOKEN): cv.string,
     vol.Optional(CONF_MAC): cv.string,
+    vol.Optional(CONFIG_DEVICE_FRIENDLY_NAME): cv.string,
+    vol.Optional(CONFIG_DEVICE_NAME): cv.string,
     vol.Optional(CONF_CERT, default=DEFAULT_CONF_CERT_FILE): cv.string,
     vol.Optional(CONF_CONFIG_FILE, default=DEFAULT_CONF_CONFIG_FILE): cv.string,
     vol.Optional(CONF_TEMPERATURE_UNIT, default=DEFAULT_CONF_TEMP_UNIT): cv.string,
     vol.Optional(CONF_CONTROLLER, default=DEFAULT_CONF_CONTROLLER): cv.string,
     vol.Optional(CONF_DEBUG, default=False): cv.boolean,
+    vol.Optional(CONFIG_DEVICE_POLL, default=None): cv.boolean,
+    vol.Optional(CONFIG_DEVICE_UPDATE_DELAY, default=DEFAULT_UPDATE_DELAY): cv.string,
 })
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -95,7 +103,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     if device_controller is None:
         return PlatformNotReady
 
-    async_add_entities([ClimateIP(device_controller)], True)
+    async_add_entities([ClimateIP(device_controller, config)], True)
 
     async def async_service_handler(service):
         params = {key: value for key, value in service.data.items()
@@ -120,15 +128,24 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         if update_tasks:
             await asyncio.wait(update_tasks, loop=hass.loop)
 
-    if device_controller.service_schema_map is not None:
-        hass.services.async_register(DOMAIN, SERVICE_SET_CUSTOM_OPERATION.format(device_controller.name), 
-            async_service_handler, schema = vol.Schema(device_controller.service_schema_map))
+    service_schema = device_controller.service_schema_map if device_controller.service_schema_map else {}
+    if CLIMATE_IP_DATA in hass.data:
+        for dev in hass.data[CLIMATE_IP_DATA][ENTITIES]:
+            if dev.service_schema_map:
+                service_schema.update(dev.service_schema_map)
+
+    if service_schema is not None:
+        hass.services.async_register(DOMAIN, SERVICE_SET_CUSTOM_OPERATION, 
+            async_service_handler, schema = vol.Schema(service_schema))
 
 class ClimateIP(ClimateDevice):
     """Representation of a Samsung climate device."""
 
-    def __init__(self, rac_controller):
+    def __init__(self, rac_controller, config):
         self.rac = rac_controller
+        self._name = config.get(CONFIG_DEVICE_NAME, None)
+        self._friendly_name = config.get(CONFIG_DEVICE_FRIENDLY_NAME, None)
+        self._poll = config.get(CONFIG_DEVICE_POLL, None)
         features = 0
         for f in SUPPORTED_FEATURES_MAP.keys():
             if f in self.rac.operations:
@@ -137,6 +154,11 @@ class ClimateIP(ClimateDevice):
             if f in self.rac.attributes:
                 features |= SUPPORTED_FEATURES_MAP[f]
         self._supported_features = features
+        self._update_delay = float(config.get(CONFIG_DEVICE_UPDATE_DELAY, DEFAULT_UPDATE_DELAY))
+
+    @property
+    def controller(self) -> ClimateController:
+        return self.rac
 
     @property
     def supported_features(self):
@@ -158,12 +180,20 @@ class ClimateIP(ClimateDevice):
 
     @property
     def should_poll(self):
-        return True
+        if self._poll is not None:
+            return self._poll
+        elif self.rac.poll is not None:
+            return self.rac.poll
+        return False
 
     @property
     def name(self):
-        if self.rac.friendly_name is not None:
+        if self._friendly_name is not None:
+            return self._friendly_name
+        elif self.rac.friendly_name is not None:
             return self.rac.friendly_name
+        elif self._name is not None:
+            return self._name
         elif self.rac.name is None:
             return 'climate_ip'
         else:
@@ -173,10 +203,12 @@ class ClimateIP(ClimateDevice):
     def state_attributes(self):
         attrs = self.rac.state_attributes
         attrs.update(super(ClimateIP, self).state_attributes)
+        if self._name is not None:
+            attrs[ATTR_NAME] = self._name
         return attrs
 
     async def async_update(self):
-        time.sleep(1.5)
+        time.sleep(self._update_delay)
         self.rac.update_state()
 
     @property

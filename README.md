@@ -19,6 +19,7 @@ Support for any unit working with REST API can be easily added via YAML configur
           ip_address: 'device_ip'
           token: 'token'
           cert: 'ac14k_m.pem'
+          friendly_name: 'Salon AC'
         ```
     * For MIM-H03 controller (REST API, port 8888)
         ```
@@ -27,6 +28,7 @@ Support for any unit working with REST API can be easily added via YAML configur
           ip_address: 'device_ip'
           token: 'token'
           cert: 'ac14k_m.pem'
+          friendly_name: 'Salon AC'
         ```
     * For old generation units:
         ```
@@ -36,9 +38,24 @@ Support for any unit working with REST API can be easily added via YAML configur
           token: 'token'
           cert: 'ac14k_m.pem' #set as '' to skip certificate verification
           mac: 'AB:cd:EF:gh:IJ'
+          friendly_name: 'Salon AC'
         ```
 ## Configuration
-1. You need to have your device __token__. Please use google to find a way to get it :-) 
+1. Configuration parameters:
+
+    | Param name        | description           |  obligatory         |
+    | ------------- |-------------|-------------|
+    | config_file      | YAML configuration filename |Yes
+    | ip_address      | Device IP address (e.g. 192.178.1.200) |Yes
+    | token           | Access token to the device        |Yes
+    | cert_file   | certificate file name (default: ac14k_m.pem, Use __None__ to not use certification) | Usually Yes
+    | mac      | MAC address of device | For 2878 devices
+    | friendly_name    | Device friendly name to use by HASS (e.g. "Salon AC")   | No
+    | name      | Device name (by default this value is taken from YAML config file) | No
+    | controller    | Controller type to use (default, and the only one for now: yaml)  | No
+    | poll      | Enable/disable state polling. Default: Taken from YAML config. Enabled for old gen devices | No
+    | debug      | Enable/disable more debugs. Default: False | No
+2. You need to have your device __token__. Please use google to find a way to get it :-) 
 2. YAML configuration
 You can easily add, remove or modify any device paramter to meet device capabilities.
 I hope that more detailed specification will be created *soon* :-D
@@ -78,7 +95,7 @@ This component implements Home Assistant ClimateDevice class. Functionality enab
 * select swing mode
 * select target temperatures (min, max and target)
 ### Device specific functions
-Device specific functionality is added as extra service called **climate.climate_ip_samsungrac_set_property**.
+Device specific functionality is added as extra service called **climate.climate_ip_set_property**.
 Every device attribute can be set using this service with proper params.
 
 ```
@@ -100,12 +117,12 @@ switch:
         friendly_name: "AC Purifier"
         value_template: "{{ is_state_attr('climate.salon_ac', 'purify', 'on') }}"
         turn_on:
-          service: climate.climate_ip_samsungrac_set_property
+          service: climate.climate_ip_set_property
           data:
             entity_id: climate.salon_ac
             purify: 'on'
         turn_off:
-          service: climate.climate_ip_samsungrac_set_property
+          service: climate.climate_ip_set_property
           data:
             entity_id: climate.salon_ac
             purify: 'off'
