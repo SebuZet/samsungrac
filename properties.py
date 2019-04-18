@@ -286,18 +286,13 @@ class SwitchOperation(BasicDeviceOperation):
 
         return False
 
-@register_property
-class NumericOperation(DeviceOperation):
+class BasicNumericOperation(DeviceOperation):
     def __init__(self, name, connection):
-        super(NumericOperation, self).__init__(name, connection)
+        super(BasicNumericOperation, self).__init__(name, connection)
         self._min = None
         self._max = None
         self._value = 0.0
  
-    @staticmethod
-    def match_type(type):
-        return type == PROPERTY_TYPE_NUMBER
-
     @property
     def value(self):
         f = 0
@@ -320,7 +315,7 @@ class NumericOperation(DeviceOperation):
     
     def load_from_yaml(self, node):
         """Load configuration from yaml node dictionary. Return True if successful False otherwise."""
-        if not super(NumericOperation, self).load_from_yaml(node):
+        if not super(BasicNumericOperation, self).load_from_yaml(node):
             return False
 
         if node is not None:
