@@ -36,6 +36,8 @@ class ConnectionSamsung2878(Connection):
         self._params = {}
         self._connection_init_template = None
         self._cfg = connection_config(None, None, None, None, None)
+        self._device_status = {}
+        self._socket_timeout = 2 # in seconds
         self.update_configuration_from_hass(hass_config)
     
     def update_configuration_from_hass(self, hass_config):
@@ -108,167 +110,141 @@ class ConnectionSamsung2878(Connection):
         c.load_from_yaml(node, self)
         return c
 
+    def read_line_from_socket(self, sslSocket):
+        import select
+        reply = None
+        ready = select.select([sslSocket], [], [], self._socket_timeout)
+        if ready and ready[0]:
+            reply = sslSocket.recv(4096).decode("utf-8")
+            self.logger.info("Response: {}".format(reply))
+        else:
+            self.logger.warning("Socket timed out")
+        return reply
+
+    def handle_response_invalidate_account(self, sslSocket, response):
+        if sslSocket is not None:
+            if self._connection_init_template is not None:
+                params = self._params
+                init_message = self._connection_init_template.render(**params) + '\n'
+                self.logger.info("Sending auth command: {}".format(init_message))
+                sslSocket.sendall(init_message.encode('utf-8'))
+                self.logger.info("Auth command sent")
+
+    def handle_response_auth_success(self, sslSocket, response):
+        self.logger.info('Connection authenticated')
+        self._cfg.socket = sslSocket
+        command = '<Request Type="DeviceState" DUID="{}"></Request>'.format(self._cfg.duid)
+        self.logger.info("Requesting status with command: {}".format(command))
+        sslSocket.sendall(command.encode('utf-8'))
+        self.logger.info("Status request sent")
+
+    def handle_response_status_update(self, sslSocket, response):
+        attrs = response.split("><")
+        for attr in attrs:
+            f = re.match('Attr ID="(.*)" Value="(.*)"', attr)
+            if f:
+                self._device_status[f[1]] = f[2]
+
+    def handle_response_device_state(self, sslSocket, response):
+        attrs = response.split("><")
+        device_status = {}
+        for attr in attrs:
+            f = re.match('Attr ID="(.*)" Type=".*" Value="(.*)"', attr)
+            if f:
+                device_status[f[1]] = f[2]
+        self._device_status = device_status
+
+    def handle_socket_response(self, sslSocket):
+        reply = self.read_line_from_socket(sslSocket)
+        while reply:
+            if reply.find('Update Type="InvalidateAccount"') != -1:
+                self.handle_response_invalidate_account(sslSocket, reply)
+            elif reply.find('Response Type="AuthToken" Status="Okay"') != -1:
+                self.handle_response_auth_success(sslSocket, reply)
+            elif reply.find('Update Type="Status"') != -1:
+                self.handle_response_status_update(sslSocket, reply)
+            elif reply.find('Response Type="DeviceState" Status="Okay"') != -1:
+                self.handle_response_device_state(sslSocket, reply)
+            elif reply.find('Response Type="DeviceControl" Status="Okay"') != -1:
+                pass # do we need to handle this?
+            reply = self.read_line_from_socket(sslSocket)
+
+    def send_socket_command(self, command, retries = 1):
+        sslSocket = None
+        command_sent = False
+        try:
+            self.logger.info("Getting socket connection")
+            sslSocket = self.socket
+            if command:
+                self.logger.info("Sending command")
+                sslSocket.sendall(command.encode('utf-8'))
+                command_sent = True
+            else:
+                self.logger.info("Command empty, skipping sending")
+                command_sent = sslSocket is not None
+            self.logger.info("Handling socket response")
+            self.handle_socket_response(sslSocket)
+            self.logger.info("Handling finished")
+        except:
+            self.logger.error('Sending command failed')
+            if sslSocket is not None:
+                sslSocket.close()
+                self._cfg.socket = None
+            self.logger.error(traceback.format_exc())
+
+        if not command_sent and retries > 0:
+            self.logger.info("Retrying sending command...")
+            self.send_socket_command(command, retries -1)
+        
     def create_connection(self):
         sslSocket = None
         cfg = self._cfg
-        try:
-            self.logger.info("Creating ssl context")
-            sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-            self.logger.info("Setting up ciphers")
-            sslContext.set_ciphers("HIGH:!DH:!aNULL")
-            self.logger.info("Setting up verify mode")
-            sslContext.verify_mode = ssl.CERT_REQUIRED if cfg.cert is not None else ssl.CERT_NONE
-            if cfg.cert is not None:
-                self.logger.info("Setting up verify location: {}".format(cfg.cert))
-                sslContext.load_verify_locations(cafile = cfg.cert)
-                self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
-                sslContext.load_cert_chain(cfg.cert)
-            else:
-                self.logger.info("Cert is empty, skipping verification")
-            self.logger.info("Wrapping socket")
-            sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
-            self.logger.info("Socket wrapped: {}".format(True if sslSocket is not None else False))
-        except:
-            self.logger.error('ERROR creating socket')
-            if sslSocket is not None:
-                sslSocket.close()
-                sslSocket = None
-            traceback.print_exc()
+        self.logger.info("Creating ssl context")
+        sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        self.logger.info("Setting up ciphers")
+        sslContext.set_ciphers("HIGH:!DH:!aNULL")
+        self.logger.info("Setting up verify mode")
+        sslContext.verify_mode = ssl.CERT_REQUIRED if cfg.cert is not None else ssl.CERT_NONE
+        if cfg.cert is not None:
+            self.logger.info("Setting up verify location: {}".format(cfg.cert))
+            sslContext.load_verify_locations(cafile = cfg.cert)
+            self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
+            sslContext.load_cert_chain(cfg.cert)
+        else:
+            self.logger.info("Cert is empty, skipping verification")
+        self.logger.info("Wrapping socket")
+        sslSocket = sslContext.wrap_socket(socket(AF_INET, SOCK_STREAM), server_hostname = cfg.host)
+        self.logger.info("Socket wrapped: {}".format(True if sslSocket is not None else False))
 
         if sslSocket is not None:
-            try:
-                self.logger.info("Connecting with {}:{}".format(cfg.host, cfg.port))
-                sslSocket.connect((cfg.host, cfg.port))
-                reply = sslSocket.recv(1024)
-                self.logger.info("Response: {}".format(reply.decode("utf-8")))
-                reply = sslSocket.recv(1024)
-                self.logger.info("Response: {}".format(reply.decode("utf-8")))
-                self.logger.info("Socket created successful")
-                return sslSocket
-            except:
-                self.logger.error('ERROR connecting socket')
-                if sslSocket is not None:
-                    sslSocket.close()
-                traceback.print_exc()
+            self.logger.info("Connecting with {}:{}".format(cfg.host, cfg.port))
+            sslSocket.connect((cfg.host, cfg.port))
+            #sslSocket.setblocking(0)
+            self.handle_socket_response(sslSocket)
         else:
             self.logger.info("ERROR Wrapping socket")
 
-        return None
-
-    def validate_connection(self, sslSocket, init_message):
-        if sslSocket is not None:
-            try:
-                self.logger.info("Sending init message: {}".format(init_message))
-                sslSocket.sendall(init_message.encode('utf-8'))
-                self.logger.info("Message sent")
-                reply = sslSocket.recv(4096)
-                if reply is not None:
-                    reply_str = reply.decode("utf-8")
-                    self.logger.info("Response: {}".format(reply_str))
-                    if reply_str.find(CONST_STATUS_OK_STR) != -1:
-                        self.logger.info('Connection status OK')
-                        return True
-                    else:
-                        self.logger.error('ERROR while validating connection, response error')
-
-            except:
-                self.logger.error('ERROR while validating connection, send error')
-                traceback.print_exc()
-        
-        return False
-
-    def get_socket(self, init_message):
+    @property
+    def socket(self):
         sslSocket = self._cfg.socket
         if sslSocket is None:
-            sslSocket = self.create_connection()
-            if not self.validate_connection(sslSocket, init_message):
-                self.logger.error("ERROR connecting to device!")
-                self._cfg.socket = None
-                return None
-                
-            self.logger.info("Socket created!")
-            self._cfg.socket = sslSocket
-        
+            self.logger.info("Connection invalid, creating!")
+            self.create_connection()
+            sslSocket = self._cfg.socket
+            if sslSocket is None:
+                self.logger.error("Creating connecting failed!")
         return sslSocket
 
     def execute(self, template, v):
         params = self._params
         params.update({ 'value' : v })
-        init_message = ''
-        if self._connection_init_template is not None:
-            init_message = self._connection_init_template.render(**params) + '\n'
-
+        self.logger.info("Executing params: {}".format(params))
         message = v
         if template is not None:
             message = template.render(**params) + '\n'
+        elif CONFIG_DEVICE_CONECTION_TEMPLATE in params:
+            message = params[CONFIG_DEVICE_CONECTION_TEMPLATE]
 
-        xml_response = None
-        sslSocket = self.get_socket(init_message)
-        if sslSocket is not None:
-            try:
-                self.logger.info("Sending command: {}".format(message))
-                sslSocket.sendall(message.encode('utf-8'))
-                self.logger.info("Message sent")
-                xml_response = sslSocket.recv(4096).decode("utf-8")
-                self.logger.info("Response: {}".format(xml_response))
-                return xml_response
-
-            except:
-                self.logger.error('ERROR sending command to device')
-                if sslSocket is not None:
-                    sslSocket.close()
-                    self._cfg.socket = None
-                traceback.print_exc()
-        else:
-            self.logger.error('ERROR socket not created')
-        return xml_response
-
-@register_status_getter
-class GetSamsung2878Status(DeviceProperty):
-    def __init__(self, name, connection):
-        super(GetSamsung2878Status, self).__init__(name, connection)
-        self._json_status = None
-        self._xml_status = None
-        self._attrs = {}
-
-    @staticmethod
-    def match_type(type):
-        return type == CONNECTION_TYPE_S2878
-
-    def update_state(self, device_state, debug):
-        from collections import OrderedDict
-        from xml.etree.ElementTree import fromstring
-        import xmljson
-
-        self._attrs = {}
-        conn = self.get_connection(None)
-        device_state = conn.execute(self._connection_template, None)
-        self._xml_status = device_state
-        self._attrs['state_xml'] = self._xml_status
-
-        if self._xml_status is not None:
-            # convert xml to json
-            try:
-                conv = xmljson.Abdera(dict_type=OrderedDict)
-                device_state = conv.data(fromstring(self._xml_status))
-            except:
-                conn.logger.error("ERROR while converting XML to JSON")
-                device_state = {}
-
-        self._json_status = device_state
-        self._value = self._json_status
-        self._attrs['state_json'] = json.dumps(self._json_status)
-        if self.status_template is not None and self._json_status is not None:
-            try:
-                v = self.status_template.render(device_state=self._json_status)
-                self._value = json.loads(v)
-            except:
-                self._value = self._json_status
-        self._attrs['device_state'] = self.value
-        self._attrs['duid'] = conn._cfg.duid
-        return self.value
-
-    @property
-    def state_attributes(self):
-        """Return dictionary with property attributes."""
-        return self._attrs
+        self.logger.info("Executing command: {}".format(message))
+        self.send_socket_command(message, 1)
+        return self._device_status
