@@ -175,7 +175,7 @@ class ConnectionSamsung2878(Connection):
         try:
             self.logger.info("Getting socket connection")
             sslSocket = self.socket
-            if command:
+            if sslSocket and command:
                 self.logger.info("Sending command")
                 sslSocket.sendall(command.encode('utf-8'))
                 command_sent = True
