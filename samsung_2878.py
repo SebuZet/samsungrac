@@ -129,6 +129,7 @@ class ConnectionSamsung2878(Connection):
                 self.logger.info("Sending auth command: {}".format(init_message))
                 sslSocket.sendall(init_message.encode('utf-8'))
                 self.logger.info("Auth command sent")
+                self._cfg.socket = sslSocket
 
     def handle_response_auth_success(self, sslSocket, response):
         self.logger.info('Connection authenticated')
