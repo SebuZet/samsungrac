@@ -183,7 +183,8 @@ class ConnectionSamsung2878(Connection):
                 self.logger.info("Command empty, skipping sending")
                 command_sent = sslSocket is not None
             self.logger.info("Handling socket response")
-            self.handle_socket_response(sslSocket)
+            if sslSocket:
+                self.handle_socket_response(sslSocket)
             self.logger.info("Handling finished")
         except:
             self.logger.error('Sending command failed')
@@ -222,7 +223,7 @@ class ConnectionSamsung2878(Connection):
             #sslSocket.setblocking(0)
             self.handle_socket_response(sslSocket)
         else:
-            self.logger.info("ERROR Wrapping socket")
+            self.logger.info("Wrapping socket failed")
 
     @property
     def socket(self):
@@ -232,7 +233,7 @@ class ConnectionSamsung2878(Connection):
             self.create_connection()
             sslSocket = self._cfg.socket
             if sslSocket is None:
-                self.logger.error("Creating connecting failed!")
+                self.logger.error("Creating socket failed!")
         return sslSocket
 
     def execute(self, template, v):
