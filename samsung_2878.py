@@ -37,7 +37,7 @@ class ConnectionSamsung2878(Connection):
         self._connection_init_template = None
         self._cfg = connection_config(None, None, None, None, None)
         self._device_status = {}
-        self._socket_timeout = 2 # in seconds
+        self._socket_timeout = 1 # in seconds
         self.update_configuration_from_hass(hass_config)
     
     def update_configuration_from_hass(self, hass_config):
@@ -114,11 +114,12 @@ class ConnectionSamsung2878(Connection):
         import select
         reply = None
         ready = select.select([sslSocket], [], [], self._socket_timeout)
+        self.logger.info("Reading data from socket...")
         if ready and ready[0]:
             reply = sslSocket.recv(4096).decode("utf-8")
             self.logger.info("Response: {}".format(reply))
         else:
-            self.logger.warning("Socket timed out")
+            self.logger.info("Timed out, no data to read")
         return reply
 
     def handle_response_invalidate_account(self, sslSocket, response):
