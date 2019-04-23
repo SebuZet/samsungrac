@@ -188,10 +188,13 @@ class YamlController(ClimateController):
         
     def update_state(self):
         debug = self._debug
+        self._logger.info("Updating state...")
         if self._state_getter is not None:
             self._attributes = { ATTR_NAME : self.name }
+            self._logger.info("Updating getter...")
             self._state_getter.update_state(self._state_getter.value, debug)
             device_state = self._state_getter.value
+            self._logger.info("Getter updated with value: {}".format(device_state))
             if device_state is None and self._retries_count > 0:
                 --self._retries_count
                 device_state = self._last_device_state
@@ -201,9 +204,11 @@ class YamlController(ClimateController):
                 self._last_device_state = device_state
             if debug:
                 self._attributes.update(self._state_getter.state_attributes)
+            self._logger.info("Updating operations...")
             for op in self._operations.values():
                 op.update_state(device_state, debug)
                 self._attributes.update(op.state_attributes)
+            self._logger.info("Updating properties...")
             for prop in self._properties.values():
                 prop.update_state(device_state, debug)
                 self._attributes.update(prop.state_attributes)
@@ -227,6 +232,7 @@ class YamlController(ClimateController):
 
     @property
     def state_attributes(self):
+        self._logger.info("Controller::state_attributes")
         return self._attributes
 
     @property

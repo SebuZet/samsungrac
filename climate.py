@@ -180,11 +180,13 @@ class ClimateIP(ClimateDevice):
 
     @property
     def should_poll(self):
+        res = False
         if self._poll is not None:
-            return self._poll
+            res = self._poll
         elif self.rac.poll is not None:
-            return self.rac.poll
-        return False
+            res = self.rac.poll
+        _LOGGER.info("Should poll: {}".format(res))
+        return res
 
     @property
     def name(self):
@@ -201,6 +203,7 @@ class ClimateIP(ClimateDevice):
 
     @property
     def state_attributes(self):
+        _LOGGER.info("state_attributes")
         attrs = self.rac.state_attributes
         attrs.update(super(ClimateIP, self).state_attributes)
         if self._name is not None:
@@ -209,6 +212,7 @@ class ClimateIP(ClimateDevice):
 
     async def async_update(self):
         time.sleep(self._update_delay)
+        _LOGGER.info("async_update")
         self.rac.update_state()
 
     @property
