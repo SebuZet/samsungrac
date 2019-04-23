@@ -144,7 +144,8 @@ class ConnectionSamsung2878(Connection):
         for attr in attrs:
             f = re.match('Attr ID="(.*)" Value="(.*)"', attr)
             if f:
-                self._device_status[f[1]] = f[2]
+                k, v = f.group(1, 2)
+                self._device_status[k] = v
 
     def handle_response_device_state(self, sslSocket, response):
         attrs = response.split("><")
@@ -152,7 +153,8 @@ class ConnectionSamsung2878(Connection):
         for attr in attrs:
             f = re.match('Attr ID="(.*)" Type=".*" Value="(.*)"', attr)
             if f:
-                device_status[f[1]] = f[2]
+                k, v = f.group(1, 2)
+                device_status[k] = v
         self._device_status = device_status
 
     def handle_socket_response(self, sslSocket):
