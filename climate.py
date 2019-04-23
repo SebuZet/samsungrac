@@ -85,7 +85,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_TEMPERATURE_UNIT, default=DEFAULT_CONF_TEMP_UNIT): cv.string,
     vol.Optional(CONF_CONTROLLER, default=DEFAULT_CONF_CONTROLLER): cv.string,
     vol.Optional(CONF_DEBUG, default=False): cv.boolean,
-    vol.Optional(CONFIG_DEVICE_POLL, default=None): cv.boolean,
+    vol.Optional(CONFIG_DEVICE_POLL, default=""): cv.string,
     vol.Optional(CONFIG_DEVICE_UPDATE_DELAY, default=DEFAULT_UPDATE_DELAY): cv.string,
 })
 
@@ -145,7 +145,14 @@ class ClimateIP(ClimateDevice):
         self.rac = rac_controller
         self._name = config.get(CONFIG_DEVICE_NAME, None)
         self._friendly_name = config.get(CONFIG_DEVICE_FRIENDLY_NAME, None)
-        self._poll = config.get(CONFIG_DEVICE_POLL, None)
+        self._poll = None
+        str_poll = config.get(CONFIG_DEVICE_POLL, "")
+        if str_poll:
+            str_poll = str_poll.lower()
+            if str_poll == "false":
+                self._poll = False
+            elif str_poll == "true":
+                self._poll = True
         features = 0
         for f in SUPPORTED_FEATURES_MAP.keys():
             if f in self.rac.operations:
