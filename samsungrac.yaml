@@ -15,12 +15,12 @@ device:
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/mode' }
       values: 
-        'cool': { value : 'Cool', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Cool"] } } } }
-        'heat': { value : 'Heat', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Heat"] } } } }
-        'dry': { value : 'Dry', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Dry"] } } } }
-        'fan_only': { value : 'Wind', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Wind"] } } } }
-        'heat_cool': { value : 'Auto', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Auto"] } } } }
-        'off': { value : 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
+        'cool': { value : 'Cool', connection: { params: { json: { "modes": ["Cool"] } }, connection: { params: { json: { "Operation": { "power" : "On" } }, url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' } } } } 
+        'heat': { value : 'Heat', connection: { params: { json: { "modes": ["Heat"] } }, connection: { params: { json: { "Operation": { "power" : "On" } }, url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' } } } } 
+        'dry': { value : 'Dry', connection: { params: { json: { "modes": ["Dry"] } }, connection: { params: { json: { "Operation": { "power" : "On" } }, url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' } } } } 
+        'fan_only': { value : 'Wind', connection: { params: { json: { "modes": ["Wind"] } }, connection: { params: { json: { "Operation": { "power" : "On" } }, url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' } } } } 
+        'heat_cool': { value : 'Auto', connection: { params: { json: { "modes": ["Auto"] } }, connection: { params: { json: { "Operation": { "power" : "On" } }, url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' } } } } 
+        'off': { value : 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } }, url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' } } }
       status_template: "{% if device_state.Devices.0.Operation.power == 'Off' -%}Off{%- elif device_state.Devices.0.Operation.power == 'On' -%}{{ device_state.Devices.0.Mode.modes.0 }}{%- endif %}"
     preset: # preset_mode
       type: modes
@@ -35,14 +35,14 @@ device:
         'eco': { value : 'Comode_Quiet', connection: { params: { json: { "options": ["Comode_Quiet"] } } } }
 #        'smart': { value : 'Comode_Smart', connection: { params: { json: { "options": ["Comode_Smart"] } } } }
       status_template: '{{ device_state.Devices.0.Mode.options.0 }}'
-#    power:
-#      type: switch
-#      connection:
-#        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' }
-#      values:
-#        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
-#        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
-#      status_template: '{{ device_state.Devices.0.Operation.power }}'
+    power:
+      type: switch
+      connection:
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' }
+      values:
+        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
+        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
+      status_template: '{{ device_state.Devices.0.Operation.power }}'
     purify:
       type: switch
       connection:
@@ -128,24 +128,6 @@ device:
       max: 32
       status_template: '{{ device_state.Devices.0.Temperatures.0.desired | int }}'
       connection_template: '{ "json": { "desired": {{ value | int }} } }'
-      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
-    target_temp_high:
-      type: number
-      connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
-      min: 16
-      max: 32
-      status_template: '{{ device_state.Devices.0.Temperatures.0.maximum | int }}'
-      connection_template: '{ "json": { "maximum": {{ value | int }} } }'
-      unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
-    target_temp_low:
-      type: number
-      connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
-      min: 16
-      max: 32
-      status_template: '{{ device_state.Devices.0.Temperatures.0.minimum | int }}'
-      connection_template: '{ "json": { "minimum": {{ value | int }} } }'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
   attributes:
     current_temperature:
