@@ -10,25 +10,39 @@ device:
     connection:
       params: { method : 'GET', url: 'https://__CLIMATE_IP_HOST__:8888/devices' }
   operations:
-    operation: # operation_mode
-      type: list
+    hvac: # hvac_mode
+      type: modes
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/mode' }
       values: 
-        cool: { value : 'Cool', connection: { params: { json: { "modes": ["Cool"] } } } }
-        heat: { value : 'Heat', connection: { params: { json: { "modes": ["Heat"] } } } }
-        dry: { value : 'Dry', connection: { params: { json: { "modes": ["Dry"] } } } }
-        fan_only: { value : 'Wind', connection: { params: { json: { "modes": ["Wind"] } } } }
-        auto: { value : 'Auto', connection: { params: { json: { "modes": ["Auto"] } } } }
-      status_template: '{{ device_state.Devices.0.Mode.modes.0 }}'
-    power:
-      type: switch
+        'cool': { value : 'Cool', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Cool"] } } } }
+        'heat': { value : 'Heat', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Heat"] } } } }
+        'dry': { value : 'Dry', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Dry"] } } } }
+        'fan_only': { value : 'Wind', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Wind"] } } } }
+        'heat_cool': { value : 'Auto', connection: { params: { json: { "Operation": { "power" : "On" }, "modes": ["Auto"] } } } }
+        'off': { value : 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
+      status_template: "{% if device_state.Devices.0.Operation.power == 'Off' -%}Off{%- elif device_state.Devices.0.Operation.power == 'On' -%}{{ device_state.Devices.0.Mode.modes.0 }}{%- endif %}"
+    preset: # preset_mode
+      type: modes
       connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' }
-      values:
-        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
-        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
-      status_template: '{{ device_state.Devices.0.Operation.power }}'
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/mode' }
+      values: 
+        'none': { value : 'Comode_Off', connection: { params: { json: { "options": ["Comode_Off"] } } } }
+        'sleep': { value : 'Comode_Sleep', connection: { params: { json: { "options": ["Comode_Sleep"] } } } }
+        'boost': { value : 'Comode_Speed', connection: { params: { json: { "options": ["Comode_Speed"] } } } }
+        'home': { value : 'Comode_2Step', connection: { params: { json: { "options": ["Comode_2Step"] } } } }
+        'comfort': { value : 'Comode_Comfort', connection: { params: { json: { "options": ["Comode_Comfort"] } } } }
+        'eco': { value : 'Comode_Quiet', connection: { params: { json: { "options": ["Comode_Quiet"] } } } }
+#        'smart': { value : 'Comode_Smart', connection: { params: { json: { "options": ["Comode_Smart"] } } } }
+      status_template: '{{ device_state.Devices.0.Mode.options.0 }}'
+#    power:
+#      type: switch
+#      connection:
+#        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0' }
+#      values:
+#        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
+#        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
+#      status_template: '{{ device_state.Devices.0.Operation.power }}'
     purify:
       type: switch
       connection:
@@ -54,7 +68,7 @@ device:
         'on': { value: 'Volume_100', connection: { params: { json: { "options": [ "Volume_100"] } } } }
       status_template: '{{ device_state.Devices.0.Mode.options.14 }}'
     special: # special_mode
-      type: list
+      type: modes
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/mode' }
       values: 
@@ -67,7 +81,7 @@ device:
         'smart': { value : 'Comode_Smart', connection: { params: { json: { "options": ["Comode_Smart"] } } } }
       status_template: '{{ device_state.Devices.0.Mode.options.0 }}'
     fan: # fan_mode
-      type: list
+      type: modes
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/wind' }
       values: 
@@ -75,10 +89,10 @@ device:
         'low': { value : '1', connection: { params: { json: { "speedLevel": 1 } } } }
         'medium': { value : '2', connection: { params: { json: { "speedLevel": 2 } } } }
         'high': { value : '3', connection: { params: { json: { "speedLevel": 3 } } } }
-        'turbo': { value : '4', connection: { params: { json: { "speedLevel": 4 } } } }
+        #'turbo': { value : '4', connection: { params: { json: { "speedLevel": 4 } } } }
       status_template: '{{ device_state.Devices.0.Wind.speedLevel }}'
     fan_max: # fan_max_mode
-      type: list
+      type: modes
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/wind' }
       values: 
@@ -89,14 +103,14 @@ device:
         'turbo': { value : '4', connection: { params: { json: { "maxSpeedLevel": 4 } } } }
       status_template: '{{ device_state.Devices.0.Wind.maxSpeedLevel }}'
     swing: # swing_mode
-      type: list
+      type: modes
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/wind' }
       values: 
-        'fixed': { value : "Fix", connection: { params: { json: { "direction": "Fix" } } } }
-        'up_down': { value : "Up_And_Low", connection: { params: { json: { "direction": "Up_And_Low" } } } }
-        'left_right': { value : "Left_And_Right", connection: { params: { json: { "direction": "Left_And_Right" } } } }
-        'all': { value : "All", connection: { params: { json: { "direction": "All" } } } }
+        'off': { value : "Fix", connection: { params: { json: { "direction": "Fix" } } } }
+        'vertical': { value : "Up_And_Low", connection: { params: { json: { "direction": "Up_And_Low" } } } }
+        'horizontal': { value : "Left_And_Right", connection: { params: { json: { "direction": "Left_And_Right" } } } }
+        'both': { value : "All", connection: { params: { json: { "direction": "All" } } } }
       status_template: '{{ device_state.Devices.0.Wind.direction }}'
     good_sleep:
       type: number

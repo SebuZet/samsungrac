@@ -16,7 +16,7 @@ from homeassistant.const import (
 CLIMATE_IP_PROPERTIES = []
 CLIMATE_IP_STATUS_GETTER = []
 
-PROPERTY_TYPE_MODE = 'list'
+PROPERTY_TYPE_MODE = 'modes'
 PROPERTY_TYPE_SWITCH = 'switch'
 PROPERTY_TYPE_NUMBER = 'number'
 PROPERTY_TYPE_TEMP = 'temperature'
@@ -263,7 +263,7 @@ class ModeOperation(BasicDeviceOperation):
         """Return dictionary with property attributes."""
         data = {}
         data[self.id] = self.value
-        data[self.name + '_list'] = self.values
+        data[self.name + '_modes'] = self.values
         return data
 
 @register_property

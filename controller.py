@@ -43,10 +43,6 @@ class ClimateController:
         raise NotImplementedError()
 
     @property
-    def is_on(self):
-        return None
-
-    @property
     def service_schema_map(self):
         return None
 

@@ -4,7 +4,7 @@ import os
 
 from .yaml_const import (
     CONFIG_DEVICE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_STATUS,
-    CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES, CONFIG_DEVICE_FRIENDLY_NAME,
+    CONFIG_DEVICE_OPERATIONS, CONFIG_DEVICE_ATTRIBUTES,
     CONF_CONFIG_FILE, CONFIG_DEVICE_NAME, CONFIG_DEVICE_VALIDATE_PROPS,
     CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_DEVICE_POLL,
 )
@@ -21,10 +21,6 @@ from .properties import (
 from .connection import (
     create_connection
 )
-
-from homeassistant.components.climate import (
-    ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, ATTR_SWING_MODE, ATTR_FAN_MODE, ATTR_OPERATION_MODE
-    )
 
 from homeassistant.const import (
     TEMP_CELSIUS, ATTR_NAME, ATTR_TEMPERATURE,
@@ -112,7 +108,7 @@ class YamlController(ClimateController):
 
         with open(file, 'r') as stream:
             try:
-                yaml_device = yaml.load(StreamWrapper(stream, self._token, self._ip_address))
+                yaml_device = yaml.load(StreamWrapper(stream, self._token, self._ip_address), Loader=yaml.FullLoader)
             except yaml.YAMLError as exc:
                 if self._logger is not None:
                     self._logger.error("YAML error: {}".format(exc))
@@ -228,6 +224,8 @@ class YamlController(ClimateController):
             return self._operations[property_name].value
         if property_name in self._properties:
             return self._properties[property_name].value
+        if property_name in self._attributes:
+            return self._attributes[property_name]
         return None
 
     @property
@@ -238,11 +236,6 @@ class YamlController(ClimateController):
     @property
     def temperature_unit(self):
         return self._temp_unit
-
-    @property
-    def is_on(self):
-        state = self.get_property(ATTR_POWER)
-        return state == STATE_ON if state is not None else None
 
     @property
     def service_schema_map(self):

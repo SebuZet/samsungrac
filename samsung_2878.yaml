@@ -12,23 +12,35 @@ device:
     type: 'json_status'
     connection_template: '<Request Type="DeviceState" DUID="{{duid}}"></Request>'
   operations:
-    operation: # operation_mode
-      type: list
+    hvac: # hvac_mode
+      type: modes
       values: 
-        cool: { value : 'Cool' }
-        heat: { value : 'Heat' }
-        dry: { value : 'Dry' }
-        fan_only: { value : 'Wind' }
-        auto: { value : 'Auto' }
+        'cool': { value : 'Cool' }
+        'heat': { value : 'Heat' }
+        'dry': { value : 'Dry' }
+        'fan_only': { value : 'Wind' }
+        'heat_cool': { value : 'Auto' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_OPMODE" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_OPMODE" DUID="{{duid}}"><Attr ID="AC_FUN_OPMODE" Value="{{value}}" /></Control></Request>'
-    power: # power
-      type: switch
-      values:
-        'off': { value: 'Off' }
-        'on': { value: 'On' }
-      status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_POWER" %}{{value}}{% endif %}{% endfor %}'
-      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_POWER" DUID="{{duid}}"><Attr ID="AC_FUN_POWER" Value="{{value}}" /></Control></Request>'
+    preset: # preset_mode
+      type: modes
+      values: 
+        'none': { value : 'Off' }
+        'eco': { value : 'Quiet' }
+        'sleep': { value : 'Sleep' }
+        'smart': { value : 'Smart' }
+        'comfort': { value : 'SoftCool' }
+        'boost': { value : 'WindMode3' }
+      status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_COMODE" %}{{value}}{% endif %}{% endfor %}'
+      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
+      validation_template: '{% if "AC_FUN_COMODE" in device_state %}valid{% endif %}'
+#    power: # power
+#      type: switch
+#      values:
+#        'off': { value: 'Off' }
+#        'on': { value: 'On' }
+#      status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_POWER" %}{{value}}{% endif %}{% endfor %}'
+#      connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_POWER" DUID="{{duid}}"><Attr ID="AC_FUN_POWER" Value="{{value}}" /></Control></Request>'
     purify:
       type: switch
       values:
@@ -46,7 +58,7 @@ device:
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_ADD_AUTOCLEAN" DUID="{{duid}}"><Attr ID="AC_ADD_AUTOCLEAN" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_ADD_AUTOCLEAN" in device_state %}valid{% endif %}'
     special: # special_mode
-      type: list
+      type: modes
       values: 
         'off': { value : 'Off' }
         'quiet': { value : 'Quiet' }
@@ -60,23 +72,23 @@ device:
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_FUN_COMODE" in device_state %}valid{% endif %}'
     fan: # fan_mode
-      type: list
+      type: modes
       values: 
         'auto': { value : 'Auto' }
         'low': { value : 'Low' }
         'mid': { value : 'Mid' }
         'high': { value : 'High' }
-        'turbo': { value : 'Turbo' }
+        #'turbo': { value : 'Turbo' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_WINDLEVEL" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_WINDLEVEL" DUID="{{duid}}"><Attr ID="AC_FUN_WINDLEVEL" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_FUN_WINDLEVEL" in device_state %}valid{% endif %}'
     swing: # swing_mode
-      type: list
+      type: modes
       values: 
-        'left_right': { value : "SwingLR" }
-        'up_down': { value : "SwingUD" }
-        'fixed': { value : "Fixed" }
-        'all': { value : "Rotation" }
+        'horizontal': { value : "SwingLR" }
+        'vertical': { value : "SwingUD" }
+        'off': { value : "Fixed" }
+        'both': { value : "Rotation" }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_DIRECTION" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_DIRECTION" DUID="{{duid}}"><Attr ID="AC_FUN_DIRECTION" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_FUN_DIRECTION" in device_state %}valid{% endif %}'

@@ -4,7 +4,6 @@
 #   curl -v -k -H "Content-Type: application/json" -H "Authorization: Bearer __CLIMATE_IP_TOKEN__" --cert ac14k_m.pem -X GET https://__CLIMATE_IP_HOST__:8888/devices/
 device:
   name: 'mim-h03_heatpump'
-  friendly_name: Samsung heatpump
   connection:
     type: request
     params: 
@@ -16,24 +15,25 @@ device:
       params: { method : 'GET', url: 'https://__CLIMATE_IP_HOST__:8888/devices' }
     status_template: '{{ device_state.Devices.1 }}'
   operations:
-    operation: # operation_mode
-      type: list
+    hvac: # hvac_mode
+      type: modes
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/mode' }
       values:
-        cool: { value : 'Opmode_Cool', connection: { params: { json: { "Mode": { "modes": ["Opmode_Cool"] } } } } }
-        heat: { value : 'Opmode_Heat', connection: { params: { json: { "Mode": { "modes": ["Opmode_Heat"] } } } } }
-        # When switched to "Auto" mode the controller refuses to accept a temperature set command. For this reason the auto command is disabled
-        # auto: { value : 'Opmode_Auto', connection: { params: { json: { "Mode": { "modes": ["Opmode_Auto"] } } } } }
-      status_template: '{{ device_state.Mode.modes.0 }}'
-    power:
-      type: switch
-      connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/operation' }
-      values:
+        'cool': { value : 'Opmode_Cool', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Cool"] } } } } }
+        'heat': { value : 'Opmode_Heat', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Heat"] } } } } }
         'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
-        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
-      status_template: '{{ device_state.Operation.power }}'
+        # When switched to "Auto" mode the controller refuses to accept a temperature set command. For this reason the auto command is disabled
+        # auto: { value : 'Opmode_Auto', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Auto"] } } } } }
+      status_template: "{% if device_state.Operation.power == 'Off' -%}Off{%- elif device_state.Operation.power == 'On' -%}{{ device_state.Mode.modes.0 }}{%- endif %}"
+#    power:
+#      type: switch
+#      connection:
+#        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/operation' }
+#      values:
+#        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
+#        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
+#      status_template: '{{ device_state.Operation.power }}'
     beep:
       type: switch
       connection:

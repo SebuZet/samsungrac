@@ -14,14 +14,15 @@ import homeassistant.helpers.config_validation as cv
 
 from homeassistant.components.climate.const import (
     ATTR_MAX_TEMP, ATTR_MIN_TEMP,
-    SUPPORT_TARGET_TEMPERATURE, SUPPORT_TARGET_TEMPERATURE_LOW, SUPPORT_TARGET_TEMPERATURE_HIGH,
-    SUPPORT_FAN_MODE, SUPPORT_OPERATION_MODE, SUPPORT_SWING_MODE, SUPPORT_ON_OFF,
+    SUPPORT_TARGET_TEMPERATURE, SUPPORT_TARGET_TEMPERATURE_RANGE,
+    SUPPORT_FAN_MODE, SUPPORT_SWING_MODE, SUPPORT_PRESET_MODE,
 )   
 
 from homeassistant.components.climate import (ClimateDevice, DOMAIN,
     ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, ATTR_CURRENT_TEMPERATURE,
-    ATTR_SWING_MODE, ATTR_SWING_LIST, ATTR_FAN_MODE, ATTR_FAN_LIST, 
-    ATTR_OPERATION_MODE, ATTR_OPERATION_LIST,  
+    ATTR_SWING_MODE, ATTR_SWING_MODES, ATTR_FAN_MODE, ATTR_FAN_MODES, 
+    ATTR_HVAC_MODE, ATTR_HVAC_MODES, ATTR_PRESET_MODE, ATTR_PRESET_MODES,
+    ATTR_HVAC_ACTIONS
 )
 
 from homeassistant.const import (
@@ -34,7 +35,7 @@ from homeassistant.const import (
  
 from .yaml_const import (
     DEFAULT_CONF_CONFIG_FILE, CONF_CONFIG_FILE, CONF_CERT, CONF_DEBUG, 
-    CONF_CONTROLLER, CONFIG_DEVICE_FRIENDLY_NAME, CONFIG_DEVICE_NAME,
+    CONF_CONTROLLER, CONFIG_DEVICE_NAME,
     CONFIG_DEVICE_POLL, CONFIG_DEVICE_UPDATE_DELAY, 
 )
 
@@ -46,16 +47,15 @@ import logging
 import time
 import asyncio
 
-from .controller import (ATTR_POWER, ClimateController, create_controller)
+from .controller import (ClimateController, create_controller)
 
 SUPPORTED_FEATURES_MAP = {
     ATTR_TEMPERATURE : SUPPORT_TARGET_TEMPERATURE,
-    ATTR_TARGET_TEMP_HIGH : SUPPORT_TARGET_TEMPERATURE_HIGH,
-    ATTR_TARGET_TEMP_LOW : SUPPORT_TARGET_TEMPERATURE_LOW,
+    ATTR_TARGET_TEMP_HIGH : SUPPORT_TARGET_TEMPERATURE_RANGE,
+    ATTR_TARGET_TEMP_LOW : SUPPORT_TARGET_TEMPERATURE_RANGE,
     ATTR_FAN_MODE : SUPPORT_FAN_MODE,
-    ATTR_OPERATION_MODE : SUPPORT_OPERATION_MODE,
     ATTR_SWING_MODE : SUPPORT_SWING_MODE,
-    ATTR_POWER : SUPPORT_ON_OFF,
+    ATTR_PRESET_MODE : SUPPORT_PRESET_MODE,
 }
 
 DEFAULT_CONF_CERT_FILE = 'ac14k_m.pem'
@@ -78,7 +78,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_IP_ADDRESS): cv.string,
     vol.Optional(CONF_TOKEN): cv.string,
     vol.Optional(CONF_MAC): cv.string,
-    vol.Optional(CONFIG_DEVICE_FRIENDLY_NAME): cv.string,
     vol.Optional(CONFIG_DEVICE_NAME): cv.string,
     vol.Optional(CONF_CERT, default=DEFAULT_CONF_CERT_FILE): cv.string,
     vol.Optional(CONF_CONFIG_FILE, default=DEFAULT_CONF_CONFIG_FILE): cv.string,
@@ -144,7 +143,6 @@ class ClimateIP(ClimateDevice):
     def __init__(self, rac_controller, config):
         self.rac = rac_controller
         self._name = config.get(CONFIG_DEVICE_NAME, None)
-        self._friendly_name = config.get(CONFIG_DEVICE_FRIENDLY_NAME, None)
         self._poll = None
         str_poll = config.get(CONFIG_DEVICE_POLL, "")
         if str_poll:
@@ -197,11 +195,7 @@ class ClimateIP(ClimateDevice):
 
     @property
     def name(self):
-        if self._friendly_name is not None:
-            return self._friendly_name
-        elif self.rac.friendly_name is not None:
-            return self.rac.friendly_name
-        elif self._name is not None:
+        if self._name is not None:
             return self._name
         elif self.rac.name is None:
             return 'climate_ip'
@@ -247,24 +241,32 @@ class ClimateIP(ClimateDevice):
         return self.rac.get_property(ATTR_TARGET_TEMP_LOW)
 
     @property
-    def current_operation(self):
-        return self.rac.get_property(ATTR_OPERATION_MODE)
+    def hvac_mode(self):
+        return self.rac.get_property(ATTR_HVAC_MODE)
 
     @property
-    def operation_list(self):
-        return self.rac.get_property(ATTR_OPERATION_LIST)
+    def hvac_modes(self):
+        return self.rac.get_property(ATTR_HVAC_MODES)
 
     @property
-    def is_on(self):
-        return self.rac.is_on
+    def hvac_action(self):
+        return self.rac.get_property(ATTR_HVAC_ACTIONS)
 
     @property
-    def current_fan_mode(self):
+    def preset_mode(self):
+        return self.rac.get_property(ATTR_PRESET_MODE)
+
+    @property
+    def preset_modes(self):
+        return self.rac.get_property(ATTR_PRESET_MODES)
+
+    @property
+    def fan_mode(self):
         return self.rac.get_property(ATTR_FAN_MODE)
 
     @property
-    def fan_list(self):
-        return self.rac.get_property(ATTR_FAN_LIST)
+    def fan_modes(self):
+        return self.rac.get_property(ATTR_FAN_MODES)
 
     def set_temperature(self, **kwargs):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
@@ -286,17 +288,21 @@ class ClimateIP(ClimateDevice):
         self.rac.set_property(ATTR_FAN_MODE, fan_mode)
         self.schedule_update_ha_state(True)
 
-    def set_operation_mode(self, operation_mode):
-        self.rac.set_property(ATTR_OPERATION_MODE, operation_mode)
+    def set_hvac_mode(self, operation_mode):
+        self.rac.set_property(ATTR_HVAC_MODE, operation_mode)
         self.schedule_update_ha_state(True)
 
     @property
-    def current_swing_mode(self):
+    def swing_mode(self):
         return self.rac.get_property(ATTR_SWING_MODE)
 
+    def set_preset_mode(self, preset_mode: str):
+        self.rac.set_property(ATTR_PRESET_MODE, preset_mode)
+        self.schedule_update_ha_state(True)
+
     @property
-    def swing_list(self):
-        return self.rac.get_property(ATTR_SWING_LIST)
+    def swing_modes(self):
+        return self.rac.get_property(ATTR_SWING_MODES)
 
     def turn_on(self):
         self.rac.set_property(ATTR_POWER, STATE_ON)
