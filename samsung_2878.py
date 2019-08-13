@@ -39,7 +39,17 @@ class ConnectionSamsung2878(Connection):
         self._device_status = {}
         self._socket_timeout = 1 # in seconds
         self.update_configuration_from_hass(hass_config)
+        self._embedded_command = None
+        self._condition_template = None
     
+    @property
+    def embedded_command(self):
+        return self._embedded_command
+
+    @property
+    def condition_template(self):
+        return self._condition_template
+
     def update_configuration_from_hass(self, hass_config):
         if hass_config is not None:
             cert_file = hass_config.get(CONF_CERT, None)
@@ -72,12 +82,19 @@ class ConnectionSamsung2878(Connection):
         
         if node is not None:
             params_node = node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {})
+            
             if CONFIG_DEVICE_CONECTION_TEMPLATE in params_node:
                 self._connection_init_template = Template(params_node[CONFIG_DEVICE_CONECTION_TEMPLATE])
             elif connection_base is None:
                 self.logger.error("ERROR: missing 'connection_template' parameter in connection section")
                 return False
-            
+
+            if CONFIG_DEVICE_CONNECTION in node:
+                self._embedded_command = self.create_updated(node[CONFIG_DEVICE_CONNECTION])
+
+            if CONFIG_DEVICE_CONDITION_TEMPLATE in node:
+                self._condition_template = Template(node[CONFIG_DEVICE_CONDITION_TEMPLATE])
+
             if connection_base is None:
                 if self._cfg.host is None:
                     self.logger.error("ERROR: missing 'host' parameter in configuration section")
@@ -98,6 +115,23 @@ class ConnectionSamsung2878(Connection):
             return True
 
         return False
+
+    def check_execute_condition(self, device_state):
+        do_execute = True
+        self.logger.info("Checking execute condition")
+        if self.condition_template is not None:
+            self.logger.info("Execute condition found, evaluating")
+            try:
+                rendered_condition = self.condition_template.render(device_state = device_state)
+                self.logger.info("Execute condition evaluated: {0}".format(rendered_condition))
+                do_execute = rendered_condition == '1'
+            except:
+                self.logger.error("Execute condition found, error while evaluating, executing command")
+                do_execute = True
+        else:
+            self.logger.warning("Execute condition not found, executing")
+    
+        return do_execute
 
     @staticmethod
     def match_type(type):
@@ -240,7 +274,15 @@ class ConnectionSamsung2878(Connection):
                 self.logger.error("Creating socket failed!")
         return sslSocket
 
-    def execute(self, template, v):
+    def execute(self, template, v, device_state):
+        if self.embedded_command:
+            self.logger.info("Embedded command found, executing...")
+            self.embedded_command.execute(template, value, device_state)
+
+        if not self.check_execute_condition(device_state):
+            self.logger.warning("Execute condition not met, skipping command")
+            return self._device_status
+
         params = self._params
         params.update({ 'value' : v })
         self.logger.info("Executing params: {}".format(params))

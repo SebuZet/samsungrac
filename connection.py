@@ -27,7 +27,7 @@ class Connection:
         Return True if successful False otherwise."""
         return False
 
-    def execute(self, template, value):
+    def execute(self, template, value, device_state):
         """execute connection and return JSON object as result or None if unsuccesful."""
         return None
 

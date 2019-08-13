@@ -47,7 +47,7 @@ import logging
 import time
 import asyncio
 
-from .controller import (ClimateController, create_controller)
+from .controller import (ATTR_POWER, ClimateController, create_controller)
 
 SUPPORTED_FEATURES_MAP = {
     ATTR_TEMPERATURE : SUPPORT_TARGET_TEMPERATURE,

@@ -3,7 +3,7 @@ from .connection import (
     Connection,
 )
 from .yaml_const import (
-    CONFIG_DEVICE_CONNECTION_PARAMS, CONF_CERT, CONFIG_DEVICE_CONNECTION,
+    CONFIG_DEVICE_CONNECTION_PARAMS, CONF_CERT, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_CONDITION_TEMPLATE,
 )
 from homeassistant.const import (CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS)
 import json
@@ -22,10 +22,15 @@ class ConnectionRequestBase(Connection):
         self._embedded_command = None
         logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
         self.update_configuration_from_hass(hass_config)
+        self._condition_template = None
 
     @property
     def embedded_command(self):
         return self._embedded_command
+
+    @property
+    def condition_template(self):
+        return self._condition_template
 
     def update_configuration_from_hass(self, hass_config):
         if hass_config is not None:
@@ -37,17 +42,38 @@ class ConnectionRequestBase(Connection):
             self._params[CONF_CERT] = cert_file
 
     def load_from_yaml(self, node, connection_base):
+        from jinja2 import Template
         if connection_base:
             self._params.update(connection_base._params.copy())
+            self._condition_template = connection_base._condition_template
         
         if node:
             self._params.update(node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {}))
             if CONFIG_DEVICE_CONNECTION in node:
                 self._embedded_command = self.create_updated(node[CONFIG_DEVICE_CONNECTION])
+            if CONFIG_DEVICE_CONDITION_TEMPLATE in node:
+                self._condition_template = Template(node[CONFIG_DEVICE_CONDITION_TEMPLATE])
         
         return True
 
-    def execute_internal(self, template, value) -> (json, bool, int):
+    def check_execute_condition(self, device_state):
+        do_execute = True
+        self.logger.info("Checking execute condition")
+        if self.condition_template is not None:
+            self.logger.info("Execute condition found, evaluating")
+            try:
+                rendered_condition = self.condition_template.render(device_state = device_state)
+                self.logger.info("Execute condition evaluated: {0}".format(rendered_condition))
+                do_execute = rendered_condition == '1'
+            except:
+                self.logger.error("Execute condition found, error while evaluating, executing command")
+                do_execute = True
+        else:
+            self.logger.warning("Execute condition not found, executing")
+    
+        return do_execute
+
+    def execute_internal(self, template, value, device_state) -> (json, bool, int):
         import requests, warnings
         from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -86,17 +112,21 @@ class ConnectionRequestBase(Connection):
         
         return (None, False, 0)
 
-    def execute(self, template, value):
+    def execute(self, template, value, device_state):
         if self.embedded_command:
             self.logger.info("Embedded command found, executing...")
-            self.embedded_command.execute(template, value)
-            
+            self.embedded_command.execute(template, value, device_state)
+
+        if not self.check_execute_condition(device_state):
+            self.logger.warning("Execute condition not met, skipping command")
+            return ({}, True, 200)
+
         self.logger.info("Executing command...")
-        j, ok, code = self.execute_internal(template, value)
+        j, ok, code = self.execute_internal(template, value, device_state)
         if not j and 500 <= code < 505:
             # server error, try again
             time.sleep(1.0)
-            j = self.execute_internal(template, value)[0]
+            j = self.execute_internal(template, value, device_state)[0]
         
         return j
 
@@ -130,6 +160,6 @@ class ConnectionRequestPrint(ConnectionRequestBase):
         c.load_from_yaml(node, self)
         return c
 
-    def execute_internal(self, template, value) -> (json, bool, int):
+    def execute_internal(self, template, value, device_state) -> (json, bool, int):
         self.logger.info("ConnectionRequestPrint, execute with params: {}".format(self._params))
         return (test_json, True, 200)

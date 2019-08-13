@@ -72,12 +72,14 @@ class DeviceProperty:
         self._id = name
         self._connection_template = None
         self._validation_template = None
+        self._device_state = None
 
     @property
     def id(self):
         return self._id
 
     def is_valid(self, device_state):
+        self._device_state = device_state
         if self.validation_template == None or device_state == None:
             return True
         else:
@@ -135,6 +137,7 @@ class DeviceProperty:
     
     def update_state(self, device_state, debug):
         """Update property from device state and return current value."""
+        self._device_state = device_state
         v = STATE_UNKNOWN
         if self.status_template is not None and device_state is not None:
             v = self.status_template.render(device_state=device_state)
@@ -159,7 +162,8 @@ class GetJsonStatus(DeviceProperty):
         return type == STATUS_GETTER_JSON
 
     def update_state(self, device_state, debug):
-        device_state = self.get_connection(None).execute(self.connection_template, None)
+        self._device_state = device_state
+        device_state = self.get_connection(None).execute(self.connection_template, None, device_state)
         self._value = device_state
         self._json_status = device_state
         if device_state is not None:
@@ -189,7 +193,7 @@ class DeviceOperation(DeviceProperty):
 
     def set_value(self, v):
         """Set device property value."""
-        resp = self.get_connection(v).execute(self.connection_template, self.convert_hass_to_dev(v))
+        resp = self.get_connection(v).execute(self.connection_template, self.convert_hass_to_dev(v), self._device_state)
         return resp is not None
 
     def match_value(self, value):

@@ -17,6 +17,7 @@ CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE = 'unit_template'
 CONFIG_DEVICE_STATUS_TEMPLATE = 'status_template'
 CONFIG_DEVICE_CONECTION_TEMPLATE = 'connection_template'
 CONFIG_DEVICE_VALIDATION_TEMPLATE = 'validation_template'
+CONFIG_DEVICE_CONDITION_TEMPLATE = 'condition_template'
 
 CONF_CERT = 'cert'
 CONF_DEBUG = 'debug'
