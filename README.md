@@ -9,8 +9,8 @@ At this moment it is configured to work with:
 Support for any unit working with REST API can be easily added via YAML configuration file.
 
 ## Installation
-1. Create folder <ha_configuration_folder>/custom_components/__climate_ip__
-2. Download all files from repo to newly created folder
+1. Download all files from repo to newly created folder
+2. move folder custom_components/climate_ip to your <ha_configuration_folder>
 3. In __configuration.yaml__ file add section:
     * For new generation units (REST API, port 8888)
         ```
