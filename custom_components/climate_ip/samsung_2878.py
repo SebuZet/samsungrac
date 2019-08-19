@@ -1,6 +1,6 @@
 from .connection import (register_connection, Connection)
-from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, 
-    CONFIG_DEVICE_CONECTION_TEMPLATE, CONF_CERT,
+from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_DEVICE_CONDITION_TEMPLATE,
+    CONFIG_DEVICE_CONECTION_TEMPLATE, CONF_CERT, CONFIG_DEVICE_CONNECTION,
 )
 from homeassistant.const import (CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS)
 from .properties import (register_status_getter, DeviceProperty)
@@ -294,4 +294,5 @@ class ConnectionSamsung2878(Connection):
 
         self.logger.info("Executing command: {}".format(message))
         self.send_socket_command(message, 1)
+        #self.handle_response_device_state(None, xml_test)
         return self._device_status
