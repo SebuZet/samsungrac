@@ -1,6 +1,6 @@
 from .connection import (register_connection, Connection)
 from .yaml_const import (CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_DEVICE_CONDITION_TEMPLATE,
-    CONFIG_DEVICE_CONECTION_TEMPLATE, CONF_CERT, CONFIG_DEVICE_CONNECTION,
+    CONFIG_DEVICE_CONNECTION_TEMPLATE, CONF_CERT, CONFIG_DEVICE_CONNECTION,
 )
 from homeassistant.const import (CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS)
 from .properties import (register_status_getter, DeviceProperty)
@@ -83,8 +83,8 @@ class ConnectionSamsung2878(Connection):
         if node is not None:
             params_node = node.get(CONFIG_DEVICE_CONNECTION_PARAMS, {})
             
-            if CONFIG_DEVICE_CONECTION_TEMPLATE in params_node:
-                self._connection_init_template = Template(params_node[CONFIG_DEVICE_CONECTION_TEMPLATE])
+            if CONFIG_DEVICE_CONNECTION_TEMPLATE in params_node:
+                self._connection_init_template = Template(params_node[CONFIG_DEVICE_CONNECTION_TEMPLATE])
             elif connection_base is None:
                 self.logger.error("ERROR: missing 'connection_template' parameter in connection section")
                 return False
@@ -289,8 +289,8 @@ class ConnectionSamsung2878(Connection):
         message = v
         if template is not None:
             message = template.render(**params) + '\n'
-        elif CONFIG_DEVICE_CONECTION_TEMPLATE in params:
-            message = params[CONFIG_DEVICE_CONECTION_TEMPLATE]
+        elif CONFIG_DEVICE_CONNECTION_TEMPLATE in params:
+            message = params[CONFIG_DEVICE_CONNECTION_TEMPLATE]
 
         self.logger.info("Executing command: {}".format(message))
         self.send_socket_command(message, 1)

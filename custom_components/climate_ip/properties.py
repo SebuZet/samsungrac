@@ -2,7 +2,7 @@ import json
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util.temperature import convert as convert_temperature
 from .yaml_const import (
-    CONFIG_DEVICE_STATUS_TEMPLATE, CONFIG_DEVICE_CONECTION_TEMPLATE, CONFIG_DEVICE_VALIDATION_TEMPLATE,
+    CONFIG_DEVICE_STATUS_TEMPLATE, CONFIG_DEVICE_CONNECTION_TEMPLATE, CONFIG_DEVICE_VALIDATION_TEMPLATE,
     CONFIG_TYPE, CONFIG_DEVICE_CONNECTION, CONFIG_DEVICE_OPERATION_VALUES, CONFIG_DEVICE_OPERATION_VALUE, 
     CONFIG_DEVICE_OPERATION_NUMBER_MIN, CONFIG_DEVICE_OPERATION_NUMBER_MAX, CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE,
     )
@@ -123,8 +123,8 @@ class DeviceProperty:
         if node is not None:
             if CONFIG_DEVICE_STATUS_TEMPLATE in node:
                 self._status_template = Template(node[CONFIG_DEVICE_STATUS_TEMPLATE])
-            if CONFIG_DEVICE_CONECTION_TEMPLATE in node:
-                self._connection_template = Template(node[CONFIG_DEVICE_CONECTION_TEMPLATE])
+            if CONFIG_DEVICE_CONNECTION_TEMPLATE in node:
+                self._connection_template = Template(node[CONFIG_DEVICE_CONNECTION_TEMPLATE])
             if CONFIG_DEVICE_VALIDATION_TEMPLATE in node:
                 self._validation_template = Template(node[CONFIG_DEVICE_VALIDATION_TEMPLATE])
             self._connection = self._connection.create_updated(node.get(CONFIG_DEVICE_CONNECTION, {}))
