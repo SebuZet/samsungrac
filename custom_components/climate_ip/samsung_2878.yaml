@@ -8,6 +8,7 @@ device:
       host: "__CLIMATE_IP_HOST__"
       token: '__CLIMATE_IP_TOKEN__'
       connection_template: '<Request Type="AuthToken"><User Token="{{token}}" /></Request>'
+      power_template: '{% if value != none %}{% for key, value in device_state.items() %}{% if key == "AC_FUN_POWER" %}{% if value == "Off" %}<Request Type="DeviceControl"><Control CommandID="AC_FUN_POWER" DUID="{{duid}}"><Attr ID="AC_FUN_POWER" Value="On" /></Control></Request>{% endif %}{% endif %}{% endfor %}{% endif %}'
   status:
     type: 'json_status'
     connection_template: '<Request Type="DeviceState" DUID="{{duid}}"></Request>'
@@ -23,7 +24,6 @@ device:
         'off': { value : 'Off' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_POWER" %}{% if value == "On" %}{% for key, value in device_state.items() %}{% if key == "AC_FUN_OPMODE" %}{{value}}{% endif %}{% endfor %}{% else %}{{value}}{% endif %}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="{% if value == "Off" %}AC_FUN_POWER{% else %}AC_FUN_OPMODE{% endif %}" DUID="{{duid}}"><Attr ID="{% if value == "Off" %}AC_FUN_POWER{% else %}AC_FUN_OPMODE{% endif %}" Value="{{value}}" /></Control></Request>'
-#      connection_template: '<Request Type="DeviceControl"><Control CommandID="{% if value == "Off" %}AC_FUN_POWER{% else %}AC_FUN_OPMODE{% endif %}" DUID="{{duid}}"><Attr ID="{% if value == "Off" %}AC_FUN_POWER{% else %}AC_FUN_OPMODE{% endif %}" Value="{{value}}" /></Control><Control CommandID="AC_FUN_POWER" DUID="{{duid}}"><Attr ID="AC_FUN_POWER" Value="{% if value == "Off" %}Off{% else %}On{% endif %}" /></Control></Request>'
     preset: # preset_mode
       type: modes
       values: 

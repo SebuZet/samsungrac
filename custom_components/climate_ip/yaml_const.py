@@ -18,6 +18,7 @@ CONFIG_DEVICE_STATUS_TEMPLATE = 'status_template'
 CONFIG_DEVICE_CONNECTION_TEMPLATE = 'connection_template'
 CONFIG_DEVICE_VALIDATION_TEMPLATE = 'validation_template'
 CONFIG_DEVICE_CONDITION_TEMPLATE = 'condition_template'
+CONFIG_DEVICE_POWER_TEMPLATE = 'power_template'
 
 CONF_CERT = 'cert'
 CONF_DEBUG = 'debug'

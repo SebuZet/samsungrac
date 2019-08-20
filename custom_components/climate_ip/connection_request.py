@@ -118,7 +118,7 @@ class ConnectionRequestBase(Connection):
             self.embedded_command.execute(template, value, device_state)
 
         if not self.check_execute_condition(device_state):
-            self.logger.warning("Execute condition not met, skipping command")
+            self.logger.info("Execute condition not met, skipping command")
             return ({}, True, 200)
 
         self.logger.info("Executing command...")
