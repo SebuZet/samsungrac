@@ -1,6 +1,5 @@
 {
   "name": "Climate IP",
-  "render_readme" : "True",
   "country": "NO",
   "domains": ["climate", "switch"],
   "homeassistant": "0.96.0"
