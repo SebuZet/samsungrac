@@ -36,11 +36,12 @@ Support for any unit working with REST API can be easily added via YAML configur
           token: 'token'
           cert: 'ac14k_m.pem' #set as '' to skip certificate verification
           mac: 'AB:cd:EF:gh:IJ'
+          poll: True
         ```
 ## Configuration
 1. Configuration parameters:
 
-    | Param name        | description           |  obligatory         |
+    | Param name        | description           |  Required        |
     | ------------- |-------------|-------------|
     | config_file      | YAML configuration filename |Yes
     | ip_address      | Device IP address (e.g. 192.178.1.200) |Yes
