@@ -18,7 +18,7 @@ from homeassistant.components.climate.const import (
     SUPPORT_FAN_MODE, SUPPORT_SWING_MODE, SUPPORT_PRESET_MODE,
 )   
 
-from homeassistant.components.climate import (ClimateDevice, DOMAIN,
+from homeassistant.components.climate import (ClimateEntity, DOMAIN,
     ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, ATTR_CURRENT_TEMPERATURE,
     ATTR_SWING_MODE, ATTR_SWING_MODES, ATTR_FAN_MODE, ATTR_FAN_MODES, 
     ATTR_HVAC_MODE, ATTR_HVAC_MODES, ATTR_PRESET_MODE, ATTR_PRESET_MODES,
@@ -137,7 +137,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         hass.services.async_register(DOMAIN, SERVICE_SET_CUSTOM_OPERATION, 
             async_service_handler, schema = vol.Schema(service_schema))
 
-class ClimateIP(ClimateDevice):
+class ClimateIP(ClimateEntity):
     """Representation of a Samsung climate device."""
 
     def __init__(self, rac_controller, config):
