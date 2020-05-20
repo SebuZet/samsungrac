@@ -22,7 +22,7 @@ from homeassistant.components.climate import (ClimateEntity, DOMAIN,
     ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, ATTR_CURRENT_TEMPERATURE,
     ATTR_SWING_MODE, ATTR_SWING_MODES, ATTR_FAN_MODE, ATTR_FAN_MODES, 
     ATTR_HVAC_MODE, ATTR_HVAC_MODES, ATTR_PRESET_MODE, ATTR_PRESET_MODES,
-    ATTR_HVAC_ACTIONS
+    ATTR_HVAC_ACTION
 )
 
 from homeassistant.const import (
@@ -250,7 +250,7 @@ class ClimateIP(ClimateEntity):
 
     @property
     def hvac_action(self):
-        return self.rac.get_property(ATTR_HVAC_ACTIONS)
+        return self.rac.get_property(ATTR_HVAC_ACTION)
 
     @property
     def preset_mode(self):
