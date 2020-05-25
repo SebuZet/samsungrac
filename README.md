@@ -41,24 +41,32 @@ Support for any unit working with REST API can be easily added via YAML configur
 ## Configuration
 1. Configuration parameters:
 
-    | Param name        | description           |  Required        |
+    | Parameter        | description           |  Required        |
     | ------------- |-------------|-------------|
     | config_file      | YAML configuration filename |Yes
     | ip_address      | Device IP address (e.g. 192.178.1.200) |Yes
-    | token           | Access token to the device        |Yes
+    | token           | Access token gathered from the device        |Yes
     | cert_file   | certificate file name (default: ac14k_m.pem, Use __None__ to not use certification) | Usually Yes
-    | mac      | MAC address of device | For 2878 devices
+    | mac      | MAC address of device | Only 2878 devices
     | name      | Device name (by default this value is taken from YAML config file) | No
     | controller    | Controller type to use (default, and the only one for now: yaml)  | No
     | poll      | Enable/disable state polling. Default: Taken from YAML config. Enabled for old gen devices | No
     | debug      | Enable/disable more debugs. Default: False | No
-2. You need to have your device __token__. Please use google to find a way to get it :-) 
+2. You need to have your device __token__. I will create a guide to gather it
 2. YAML configuration
 You can easily add, remove or modify any device paramter to meet device capabilities.
-I hope that more detailed specification will be created *soon* :-D
 
 ## YAML configuration file syntax
-TO DO
+```yaml
+climate:
+  - platform: climate_ip
+    config_file: '/config/custom_components/climate_ip/samsung_2878.yaml'
+    ip_address: 192.178.1.200
+    token: SDADSAGFDfsdgdf234323
+    mac: AA:BB:CC:DD:EE:FF
+    name: 'AC Living Room'
+    poll: True
+```
 ## Functionality
 Functionality depends on yaml configuration file and can be easily changed by editing those files. Currently configuration provides:
 1. For new generation units (REST API, port 8888)
