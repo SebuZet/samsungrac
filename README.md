@@ -8,6 +8,9 @@ At this moment it is configured to work with:
 
 Support for any unit working with REST API can be easily added via YAML configuration file.
 
+This component was created by SebuZet, he however appears to be MIA so I have forked and repaired his component
+https://github.com/SebuZet/samsungrac
+
 ## Installation
 1. Download all files from repo to newly created folder
 2. move folder custom_components/climate_ip to your <ha_configuration_folder>
