@@ -2,5 +2,5 @@
   "name": "Climate IP",
   "country": "NO",
   "domains": ["climate", "switch"],
-  "homeassistant": "0.96.0"
+  "homeassistant": "0.110.2"
 }
