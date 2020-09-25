@@ -1,27 +1,27 @@
 import json
+
 import homeassistant.helpers.config_validation as cv
-from homeassistant.util.temperature import convert as convert_temperature
-from .yaml_const import (
-    CONFIG_DEVICE_STATUS_TEMPLATE,
-    CONFIG_DEVICE_CONNECTION_TEMPLATE,
-    CONFIG_DEVICE_VALIDATION_TEMPLATE,
-    CONFIG_TYPE,
-    CONFIG_DEVICE_CONNECTION,
-    CONFIG_DEVICE_OPERATION_VALUES,
-    CONFIG_DEVICE_OPERATION_VALUE,
-    CONFIG_DEVICE_OPERATION_NUMBER_MIN,
-    CONFIG_DEVICE_OPERATION_NUMBER_MAX,
-    CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE,
-)
-
-from .connection import Connection
-
 from homeassistant.const import (
-    STATE_UNKNOWN,
     STATE_OFF,
     STATE_ON,
+    STATE_UNKNOWN,
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
+)
+from homeassistant.util.temperature import convert as convert_temperature
+
+from .connection import Connection
+from .yaml_const import (
+    CONFIG_DEVICE_CONNECTION,
+    CONFIG_DEVICE_CONNECTION_TEMPLATE,
+    CONFIG_DEVICE_OPERATION_NUMBER_MAX,
+    CONFIG_DEVICE_OPERATION_NUMBER_MIN,
+    CONFIG_DEVICE_OPERATION_TEMP_UNIT_TEMPLATE,
+    CONFIG_DEVICE_OPERATION_VALUE,
+    CONFIG_DEVICE_OPERATION_VALUES,
+    CONFIG_DEVICE_STATUS_TEMPLATE,
+    CONFIG_DEVICE_VALIDATION_TEMPLATE,
+    CONFIG_TYPE,
 )
 
 CLIMATE_IP_PROPERTIES = []

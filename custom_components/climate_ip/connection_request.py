@@ -1,19 +1,18 @@
-from .connection import (
-    register_connection,
-    Connection,
-)
-from .yaml_const import (
-    CONFIG_DEVICE_CONNECTION_PARAMS,
-    CONF_CERT,
-    CONFIG_DEVICE_CONNECTION,
-    CONFIG_DEVICE_CONDITION_TEMPLATE,
-)
-from homeassistant.const import CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS
 import json
 import logging
 import os
-import traceback
 import time
+import traceback
+
+from homeassistant.const import CONF_IP_ADDRESS, CONF_MAC, CONF_PORT, CONF_TOKEN
+
+from .connection import Connection, register_connection
+from .yaml_const import (
+    CONF_CERT,
+    CONFIG_DEVICE_CONDITION_TEMPLATE,
+    CONFIG_DEVICE_CONNECTION,
+    CONFIG_DEVICE_CONNECTION_PARAMS,
+)
 
 CONNECTION_TYPE_REQUEST = "request"
 CONNECTION_TYPE_REQUEST_PRINT = "request_print"
@@ -89,7 +88,9 @@ class ConnectionRequestBase(Connection):
         return do_execute
 
     def execute_internal(self, template, value, device_state) -> (json, bool, int):
-        import requests, warnings
+        import warnings
+
+        import requests
         from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
         params = self._params

@@ -5,75 +5,71 @@ For more details about this platform, please refer to the repository
 https://github.com/SebuZet/samsungrac
 
 """
-from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
-from homeassistant.exceptions import PlatformNotReady
-from homeassistant.util.temperature import convert as convert_temperature
-from homeassistant.helpers.service import extract_entity_ids
-import homeassistant.helpers.entity_component
-import homeassistant.helpers.config_validation as cv
-
-from homeassistant.components.climate.const import (
-    ATTR_MAX_TEMP,
-    ATTR_MIN_TEMP,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_TARGET_TEMPERATURE_RANGE,
-    SUPPORT_FAN_MODE,
-    SUPPORT_SWING_MODE,
-    SUPPORT_PRESET_MODE,
-)
-
-from homeassistant.components.climate import (
-    ClimateEntity,
-    DOMAIN,
-    ATTR_TARGET_TEMP_HIGH,
-    ATTR_TARGET_TEMP_LOW,
-    ATTR_CURRENT_TEMPERATURE,
-    ATTR_SWING_MODE,
-    ATTR_SWING_MODES,
-    ATTR_FAN_MODE,
-    ATTR_FAN_MODES,
-    ATTR_HVAC_MODE,
-    ATTR_HVAC_MODES,
-    ATTR_PRESET_MODE,
-    ATTR_PRESET_MODES,
-    ATTR_HVAC_ACTION,
-)
-
-from homeassistant.const import (
-    TEMP_CELSIUS,
-    TEMP_FAHRENHEIT,
-    CONF_ACCESS_TOKEN,
-    CONF_TEMPERATURE_UNIT,
-    ATTR_TEMPERATURE,
-    ATTR_NAME,
-    ATTR_ENTITY_ID,
-    STATE_OFF,
-    STATE_ON,
-    CONF_IP_ADDRESS,
-    CONF_TOKEN,
-    CONF_MAC,
-)
-
-from .yaml_const import (
-    DEFAULT_CONF_CONFIG_FILE,
-    CONF_CONFIG_FILE,
-    CONF_CERT,
-    CONF_DEBUG,
-    CONF_CONTROLLER,
-    CONFIG_DEVICE_NAME,
-    CONFIG_DEVICE_POLL,
-    CONFIG_DEVICE_UPDATE_DELAY,
-)
-
-import voluptuous as vol
-from datetime import timedelta
+import asyncio
 import functools as ft
 import json
 import logging
 import time
-import asyncio
+from datetime import timedelta
+
+import homeassistant.helpers.config_validation as cv
+import homeassistant.helpers.entity_component
+import voluptuous as vol
+from homeassistant.components.climate import (
+    ATTR_CURRENT_TEMPERATURE,
+    ATTR_FAN_MODE,
+    ATTR_FAN_MODES,
+    ATTR_HVAC_ACTION,
+    ATTR_HVAC_MODE,
+    ATTR_HVAC_MODES,
+    ATTR_PRESET_MODE,
+    ATTR_PRESET_MODES,
+    ATTR_SWING_MODE,
+    ATTR_SWING_MODES,
+    ATTR_TARGET_TEMP_HIGH,
+    ATTR_TARGET_TEMP_LOW,
+    DOMAIN,
+    ClimateEntity,
+)
+from homeassistant.components.climate.const import (
+    ATTR_MAX_TEMP,
+    ATTR_MIN_TEMP,
+    SUPPORT_FAN_MODE,
+    SUPPORT_PRESET_MODE,
+    SUPPORT_SWING_MODE,
+    SUPPORT_TARGET_TEMPERATURE,
+    SUPPORT_TARGET_TEMPERATURE_RANGE,
+)
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    ATTR_NAME,
+    ATTR_TEMPERATURE,
+    CONF_ACCESS_TOKEN,
+    CONF_IP_ADDRESS,
+    CONF_MAC,
+    CONF_TEMPERATURE_UNIT,
+    CONF_TOKEN,
+    STATE_OFF,
+    STATE_ON,
+    TEMP_CELSIUS,
+    TEMP_FAHRENHEIT,
+)
+from homeassistant.exceptions import PlatformNotReady
+from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
+from homeassistant.helpers.service import extract_entity_ids
+from homeassistant.util.temperature import convert as convert_temperature
 
 from .controller import ATTR_POWER, ClimateController, create_controller
+from .yaml_const import (
+    CONF_CERT,
+    CONF_CONFIG_FILE,
+    CONF_CONTROLLER,
+    CONF_DEBUG,
+    CONFIG_DEVICE_NAME,
+    CONFIG_DEVICE_POLL,
+    CONFIG_DEVICE_UPDATE_DELAY,
+    DEFAULT_CONF_CONFIG_FILE,
+)
 
 SUPPORTED_FEATURES_MAP = {
     ATTR_TEMPERATURE: SUPPORT_TARGET_TEMPERATURE,

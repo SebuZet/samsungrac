@@ -1,5 +1,4 @@
-from .yaml_const import CONFIG_TYPE
-from .yaml_const import CONFIG_DEVICE_CONNECTION_PARAMS
+from .yaml_const import CONFIG_DEVICE_CONNECTION_PARAMS, CONFIG_TYPE
 
 CLIMATE_IP_CONNECTIONS = []
 

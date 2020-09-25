@@ -1,41 +1,37 @@
-import yaml
 import logging
 import os
 
-from .yaml_const import (
-    CONFIG_DEVICE,
-    CONFIG_DEVICE_CONNECTION,
-    CONFIG_DEVICE_STATUS,
-    CONFIG_DEVICE_OPERATIONS,
-    CONFIG_DEVICE_ATTRIBUTES,
-    CONF_CONFIG_FILE,
-    CONFIG_DEVICE_NAME,
-    CONFIG_DEVICE_VALIDATE_PROPS,
-    CONFIG_DEVICE_CONNECTION_PARAMS,
-    CONFIG_DEVICE_POLL,
-)
-
-from .controller import ATTR_POWER, ClimateController, register_controller
-
-from .properties import create_status_getter, create_property
-
-from .connection import create_connection
-
+import homeassistant.helpers.config_validation as cv
+import homeassistant.helpers.entity_component
+import voluptuous as vol
+import yaml
 from homeassistant.const import (
-    TEMP_CELSIUS,
+    ATTR_ENTITY_ID,
     ATTR_NAME,
     ATTR_TEMPERATURE,
     CONF_IP_ADDRESS,
     CONF_TEMPERATURE_UNIT,
     CONF_TOKEN,
     STATE_ON,
-    ATTR_ENTITY_ID,
+    TEMP_CELSIUS,
 )
-
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
-import homeassistant.helpers.config_validation as cv
-import homeassistant.helpers.entity_component
-import voluptuous as vol
+
+from .connection import create_connection
+from .controller import ATTR_POWER, ClimateController, register_controller
+from .properties import create_property, create_status_getter
+from .yaml_const import (
+    CONF_CONFIG_FILE,
+    CONFIG_DEVICE,
+    CONFIG_DEVICE_ATTRIBUTES,
+    CONFIG_DEVICE_CONNECTION,
+    CONFIG_DEVICE_CONNECTION_PARAMS,
+    CONFIG_DEVICE_NAME,
+    CONFIG_DEVICE_OPERATIONS,
+    CONFIG_DEVICE_POLL,
+    CONFIG_DEVICE_STATUS,
+    CONFIG_DEVICE_VALIDATE_PROPS,
+)
 
 CONST_CONTROLLER_TYPE = "yaml"
 CONST_MAX_GET_STATUS_RETRIES = 4

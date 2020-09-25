@@ -1,21 +1,23 @@
-from .connection import register_connection, Connection
-from .yaml_const import (
-    CONFIG_DEVICE_CONNECTION_PARAMS,
-    CONFIG_DEVICE_POWER_TEMPLATE,
-    CONFIG_DEVICE_CONNECTION_TEMPLATE,
-    CONF_CERT,
-    CONFIG_DEVICE_CONNECTION,
-)
-from homeassistant.const import CONF_PORT, CONF_TOKEN, CONF_MAC, CONF_IP_ADDRESS
-from .properties import register_status_getter, DeviceProperty
-from socket import *
 import json
 import logging
-import sys
-import ssl
-import traceback
-import re
 import os
+import re
+import ssl
+import sys
+import traceback
+from socket import *
+
+from homeassistant.const import CONF_IP_ADDRESS, CONF_MAC, CONF_PORT, CONF_TOKEN
+
+from .connection import Connection, register_connection
+from .properties import DeviceProperty, register_status_getter
+from .yaml_const import (
+    CONF_CERT,
+    CONFIG_DEVICE_CONNECTION,
+    CONFIG_DEVICE_CONNECTION_PARAMS,
+    CONFIG_DEVICE_CONNECTION_TEMPLATE,
+    CONFIG_DEVICE_POWER_TEMPLATE,
+)
 
 CONNECTION_TYPE_S2878 = "samsung_2878"
 
