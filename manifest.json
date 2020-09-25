@@ -1,9 +1,0 @@
-{
-  "domain": "climate",
-  "name": "Climate IP",
-  "documentation": "https://github.com/atxbyea/samsungrac",
-   "issue_tracker": "https://github.com/atxbyea/samsungrac/issues",
-  "dependencies": [],
-  "codeowners": [],
-  "requirements": []
-}
