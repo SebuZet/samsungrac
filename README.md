@@ -1,3 +1,5 @@
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+
 # Climate_IP - IP based climate device for Home Assistant
 Implementation of ClimateDevice for controlling IP based AC units.
 This component is able to work with any AC unit which can be controlled with REST API.
@@ -140,3 +142,5 @@ switch:
  
 ## TODO
 Documentation...
+
+
