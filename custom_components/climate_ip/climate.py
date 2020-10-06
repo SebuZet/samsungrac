@@ -258,7 +258,7 @@ class ClimateIP(ClimateEntity):
     async def async_update(self):
         time.sleep(self._update_delay)
         _LOGGER.info("async_update")
-        await self.hass.async_add_executor_job(self.rac.update_state())
+        await self.hass.async_add_executor_job(self.rac.update_state)
 
     @property
     def temperature_unit(self):
