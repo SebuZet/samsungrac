@@ -34,6 +34,7 @@ device:
         'Comfort': { value : 'Comode_Comfort', connection: { params: { json: { "options": ["Comode_Comfort"] } } } }
         'Quiet': { value : 'Comode_Quiet', connection: { params: { json: { "options": ["Comode_Quiet"] } } } }
         'Single User': { value : 'Comode_Smart', connection: { params: { json: { "options": ["Comode_Smart"] } } } }
+        'Wind Free': { value : 'Comode_Nano', connection: { params: { json: { "options": ["Comode_Nano"] } } } }
       status_template: '{{ device_state.Devices.0.Mode.options.0 }}'
     power:
       type: switch
@@ -79,6 +80,7 @@ device:
         'Comfort': { value : 'Comode_Comfort', connection: { params: { json: { "options": ["Comode_Comfort"] } } } }
         'Quiet': { value : 'Comode_Quiet', connection: { params: { json: { "options": ["Comode_Quiet"] } } } }
         'Single User': { value : 'Comode_Smart', connection: { params: { json: { "options": ["Comode_Smart"] } } } }
+        'Wind Free': { value : 'Comode_Nano', connection: { params: { json: { "options": ["Comode_Nano"] } } } }
       status_template: '{{ device_state.Devices.0.Mode.options.0 }}'
     fan: # fan_mode
       type: modes
