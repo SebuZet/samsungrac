@@ -4,7 +4,7 @@ device:
   #validate_properties: True
   connection:
     type: samsung_2878
-    params: 
+    params:
       host: "__CLIMATE_IP_HOST__"
       token: '__CLIMATE_IP_TOKEN__'
       connection_template: '<Request Type="AuthToken"><User Token="{{token}}" /></Request>'
@@ -15,7 +15,7 @@ device:
   operations:
     hvac: # hvac_mode
       type: modes
-      values: 
+      values:
         'cool': { value : 'Cool' }
         'heat': { value : 'Heat' }
         'dry': { value : 'Dry' }
@@ -26,13 +26,13 @@ device:
       connection_template: '<Request Type="DeviceControl"><Control CommandID="{% if value == "Off" %}AC_FUN_POWER{% else %}AC_FUN_OPMODE{% endif %}" DUID="{{duid}}"><Attr ID="{% if value == "Off" %}AC_FUN_POWER{% else %}AC_FUN_OPMODE{% endif %}" Value="{{value}}" /></Control></Request>'
     preset: # preset_mode
       type: modes
-      values: 
+      values:
         'none': { value : 'Off' }
-        'eco': { value : 'Quiet' }
-        'sleep': { value : 'Sleep' }
-        'smart': { value : 'Smart' }
-        'comfort': { value : 'SoftCool' }
-        'boost': { value : 'WindMode3' }
+        'Quiet': { value : 'Quiet' }
+        'Good Sleep': { value : 'Sleep' }
+        'Single User': { value : 'Smart' }
+        'Comfort': { value : 'SoftCool' }
+        'Fast Turbo': { value : 'WindMode3' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_COMODE" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_FUN_COMODE" in device_state %}valid{% endif %}'
@@ -77,9 +77,9 @@ device:
       type: modes
       values: 
         'auto': { value : 'Auto' }
-        'low': { value : 'Low' }
-        'mid': { value : 'Mid' }
-        'high': { value : 'High' }
+        'Low': { value : 'Low' }
+        'Medium': { value : 'Mid' }
+        'High': { value : 'High' }
         #'turbo': { value : 'Turbo' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_WINDLEVEL" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_WINDLEVEL" DUID="{{duid}}"><Attr ID="AC_FUN_WINDLEVEL" Value="{{value}}" /></Control></Request>'
@@ -87,10 +87,10 @@ device:
     swing: # swing_mode
       type: modes
       values: 
-        'horizontal': { value : "SwingLR" }
-        'vertical': { value : "SwingUD" }
-        'off': { value : "Fixed" }
-        'both': { value : "Rotation" }
+        'Horizontal': { value : "SwingLR" }
+        'Vertical': { value : "SwingUD" }
+        'Off': { value : "Fixed" }
+        'Both': { value : "Rotation" }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_DIRECTION" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_DIRECTION" DUID="{{duid}}"><Attr ID="AC_FUN_DIRECTION" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_FUN_DIRECTION" in device_state %}valid{% endif %}'
