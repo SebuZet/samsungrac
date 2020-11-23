@@ -229,11 +229,11 @@ class ConnectionSamsung2878(Connection):
                 self.handle_socket_response(sslSocket)
             self.logger.info("Handling finished")
         except:
-            self.logger.error("Sending command failed")
+            self.logger.info("Sending command failed")
             if sslSocket is not None:
                 sslSocket.close()
                 self._cfg.socket = None
-            self.logger.error(traceback.format_exc())
+            self.logger.info(traceback.format_exc())
 
         if not command_sent and retries > 0:
             self.logger.info("Retrying sending command...")
