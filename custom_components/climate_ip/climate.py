@@ -255,9 +255,9 @@ class ClimateIP(ClimateEntity):
             attrs[ATTR_NAME] = self._name
         return attrs
 
-    def async_update(self):
+    def update(self):
         time.sleep(self._update_delay)
-        _LOGGER.info("async_update")
+        _LOGGER.info("update")
         self.rac.update_state()
 
     @property
