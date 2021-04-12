@@ -144,3 +144,9 @@ switch:
 Documentation...
 
 
+## Known issues 
+
+SSL issues when running a pip install might be fixed with : 
+https://github.com/atxbyea/samsungrac/issues/25
+
+
