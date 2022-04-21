@@ -124,8 +124,8 @@ device:
       type: number
       connection:
         params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/0/temperatures/0' }
-      min: 16
-      max: 32
+      min: 8
+      max: 30
       status_template: '{{ device_state.Devices.0.Temperatures.0.desired | int }}'
       connection_template: '{ "json": { "desired": {{ value | int }} } }'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
@@ -136,9 +136,9 @@ device:
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     min_temp:
       type: number
-      status_template: '16'
+      status_template: '8'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
     max_temp:
       type: number
-      status_template: '32'
+      status_template: '30'
       unit_template: '{{ device_state.Devices.0.Temperatures.0.unit }}'
