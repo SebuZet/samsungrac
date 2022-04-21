@@ -90,8 +90,8 @@ REQUIREMENTS = ["requests>=2.21.0", "xmljson>=0.2.0"]
 
 CLIMATE_IP_DATA = "climate_ip_data"
 ENTITIES = "entities"
-DEFAULT_CLIMATE_IP_TEMP_MIN = 16
-DEFAULT_CLIMATE_IP_TEMP_MAX = 32
+DEFAULT_CLIMATE_IP_TEMP_MIN = 8
+DEFAULT_CLIMATE_IP_TEMP_MAX = 30
 DEFAULT_UPDATE_DELAY = 1.5
 SERVICE_SET_CUSTOM_OPERATION = "climate_ip_set_property"
 _LOGGER = logging.getLogger(__name__)
