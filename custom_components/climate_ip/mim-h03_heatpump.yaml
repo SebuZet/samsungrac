@@ -5,6 +5,9 @@
 device:
   poll: true
   name: 'mim-h03_heatpump'
+  unique_id:
+    type: string
+    status_template: '{{ device_state.uuid }}'
   connection:
     type: request
     params: 
@@ -77,4 +80,3 @@ device:
     max_temp:
       type: number
       status_template: '{{ device_state.Temperatures.0.maximum }}'
-

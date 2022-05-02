@@ -27,6 +27,7 @@ from .yaml_const import (
 CLIMATE_IP_PROPERTIES = []
 CLIMATE_IP_STATUS_GETTER = []
 
+PROPERTY_TYPE_STRING = "string"
 PROPERTY_TYPE_MODE = "modes"
 PROPERTY_TYPE_SWITCH = "switch"
 PROPERTY_TYPE_NUMBER = "number"
@@ -368,6 +369,15 @@ class ModeOperation(BasicDeviceOperation):
         data[self.id] = self.value
         data[self.name + "_modes"] = self.values
         return data
+
+@register_property
+class UniqueIdProperty(DeviceProperty):
+    def __init__(self, name, connection):
+        super().__init__(name, connection)
+
+    @staticmethod
+    def match_type(type):
+        return type == PROPERTY_TYPE_STRING
 
 
 @register_property

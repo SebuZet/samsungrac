@@ -30,6 +30,7 @@ from .yaml_const import (
     CONFIG_DEVICE_OPERATIONS,
     CONFIG_DEVICE_POLL,
     CONFIG_DEVICE_STATUS,
+    CONFIG_DEVICE_UNIQUE_ID,
     CONFIG_DEVICE_VALIDATE_PROPS,
 )
 
@@ -86,10 +87,16 @@ class YamlController(ClimateController):
         self._retries_count = 0
         self._last_device_state = None
         self._poll = None
+        self._unique_id = None
+        self._uniqe_id_prop = None
 
     @property
     def poll(self):
         return self._poll
+    
+    @property
+    def unique_id(self):
+        return self._unique_id
 
     @property
     def id(self):
@@ -163,6 +170,10 @@ class YamlController(ClimateController):
                 prop = create_property(key, nodes[key], connection)
                 if prop is not None:
                     self._properties[prop.id] = prop
+            
+            unique_id_prop = create_property(CONFIG_DEVICE_UNIQUE_ID, ac.get(CONFIG_DEVICE_UNIQUE_ID, {}), connection)
+            if unique_id_prop is not None:
+                self._uniqe_id_prop = unique_id_prop
 
             self._name = ac.get(ATTR_NAME, CONST_CONTROLLER_TYPE)
 
@@ -225,6 +236,8 @@ class YamlController(ClimateController):
             for prop in self._properties.values():
                 prop.update_state(device_state, debug)
                 self._attributes.update(prop.state_attributes)
+            if self._unique_id is None and self._uniqe_id_prop is not None:
+                self._unique_id = self._uniqe_id_prop.update_state(device_state, debug)
 
     def set_property(self, property_name, new_value):
         print("SETTING UP property {} to {}".format(property_name, new_value))
