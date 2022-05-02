@@ -22,6 +22,7 @@ from .controller import ATTR_POWER, ClimateController, register_controller
 from .properties import create_property, create_status_getter
 from .yaml_const import (
     CONF_CONFIG_FILE,
+    CONF_DEVICE_ID,
     CONFIG_DEVICE,
     CONFIG_DEVICE_ATTRIBUTES,
     CONFIG_DEVICE_CONNECTION,
@@ -39,11 +40,12 @@ CONST_MAX_GET_STATUS_RETRIES = 4
 
 
 class StreamWrapper(object):
-    def __init__(self, stream, token, ip_address):
+    def __init__(self, stream, token, ip_address, device_id):
         self.stream = stream
         self.leftover = ""
         self.token = token
         self.ip_address = ip_address
+        self.device_id = device_id
 
     def read(self, size):
         data = self.leftover
@@ -56,6 +58,8 @@ class StreamWrapper(object):
                 chunk = chunk.replace("__CLIMATE_IP_TOKEN__", self.token)
             if self.ip_address is not None:
                 chunk = chunk.replace("__CLIMATE_IP_HOST__", self.ip_address)
+            if self.device_id is not None:
+                chunk = chunk.replace("__DEVICE_ID__", self.device_id)
 
             data += chunk
             count += len(chunk)
@@ -82,6 +86,7 @@ class YamlController(ClimateController):
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
         self._yaml = config.get(CONF_CONFIG_FILE)
         self._ip_address = config.get(CONF_IP_ADDRESS, None)
+        self._device_id = config.get(CONF_DEVICE_ID, '032000000')
         self._token = config.get(CONF_TOKEN, None)
         self._config = config
         self._retries_count = 0
@@ -114,11 +119,13 @@ class YamlController(ClimateController):
             self._logger.info("ip_address: {}".format(self._ip_address))
         if self._token is not None:
             self._logger.info("token: {}".format(self._token))
+        if self._device_id is not None:
+            self._logger.info("device id: {}".format(self._device_id))
 
         with open(file, "r") as stream:
             try:
                 yaml_device = yaml.load(
-                    StreamWrapper(stream, self._token, self._ip_address),
+                    StreamWrapper(stream, self._token, self._ip_address, self._device_id),
                     Loader=yaml.FullLoader,
                 )
             except yaml.YAMLError as exc:

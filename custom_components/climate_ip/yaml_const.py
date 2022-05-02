@@ -24,6 +24,7 @@ CONFIG_DEVICE_POWER_TEMPLATE = "power_template"
 CONF_CERT = "cert"
 CONF_DEBUG = "debug"
 CONF_CONTROLLER = "controller"
+CONF_DEVICE_ID = "device_id"
 
 DEFAULT_CONF_CONFIG_FILE = "samsungrac.yaml"
 CONF_CONFIG_FILE = "config_file"
