@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import logging
 import os
@@ -26,6 +27,10 @@ class ConnectionRequestBase(Connection):
         logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
         self.update_configuration_from_hass(hass_config)
         self._condition_template = None
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    
+    def __del__(self):
+        self._thread_pool.shutdown(wait=False)
 
     @property
     def embedded_command(self):
@@ -102,7 +107,9 @@ class ConnectionRequestBase(Connection):
             with requests.sessions.Session() as session:
                 self.logger.info(self._params)
                 try:
-                    resp = session.request(**self._params)
+                    future = self._thread_pool.submit(session.request, **self._params)
+                    resp = future.result()
+
                     self.logger.info(
                         "Command executed with code: {}, text: {}".format(
                             resp.status_code, resp.text
