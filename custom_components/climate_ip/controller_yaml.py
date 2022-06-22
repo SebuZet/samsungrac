@@ -22,6 +22,7 @@ from .controller import ATTR_POWER, ClimateController, register_controller
 from .properties import create_property, create_status_getter
 from .yaml_const import (
     CONF_CONFIG_FILE,
+    CONF_DEVICE_ID,
     CONFIG_DEVICE,
     CONFIG_DEVICE_ATTRIBUTES,
     CONFIG_DEVICE_CONNECTION,
@@ -30,6 +31,7 @@ from .yaml_const import (
     CONFIG_DEVICE_OPERATIONS,
     CONFIG_DEVICE_POLL,
     CONFIG_DEVICE_STATUS,
+    CONFIG_DEVICE_UNIQUE_ID,
     CONFIG_DEVICE_VALIDATE_PROPS,
 )
 
@@ -38,11 +40,12 @@ CONST_MAX_GET_STATUS_RETRIES = 4
 
 
 class StreamWrapper(object):
-    def __init__(self, stream, token, ip_address):
+    def __init__(self, stream, token, ip_address, device_id):
         self.stream = stream
         self.leftover = ""
         self.token = token
         self.ip_address = ip_address
+        self.device_id = device_id
 
     def read(self, size):
         data = self.leftover
@@ -55,6 +58,8 @@ class StreamWrapper(object):
                 chunk = chunk.replace("__CLIMATE_IP_TOKEN__", self.token)
             if self.ip_address is not None:
                 chunk = chunk.replace("__CLIMATE_IP_HOST__", self.ip_address)
+            if self.device_id is not None:
+                chunk = chunk.replace("__DEVICE_ID__", self.device_id)
 
             data += chunk
             count += len(chunk)
@@ -81,15 +86,22 @@ class YamlController(ClimateController):
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
         self._yaml = config.get(CONF_CONFIG_FILE)
         self._ip_address = config.get(CONF_IP_ADDRESS, None)
+        self._device_id = config.get(CONF_DEVICE_ID, '032000000')
         self._token = config.get(CONF_TOKEN, None)
         self._config = config
         self._retries_count = 0
         self._last_device_state = None
         self._poll = None
+        self._unique_id = None
+        self._uniqe_id_prop = None
 
     @property
     def poll(self):
         return self._poll
+    
+    @property
+    def unique_id(self):
+        return self._unique_id
 
     @property
     def id(self):
@@ -107,11 +119,13 @@ class YamlController(ClimateController):
             self._logger.info("ip_address: {}".format(self._ip_address))
         if self._token is not None:
             self._logger.info("token: {}".format(self._token))
+        if self._device_id is not None:
+            self._logger.info("device id: {}".format(self._device_id))
 
         with open(file, "r") as stream:
             try:
                 yaml_device = yaml.load(
-                    StreamWrapper(stream, self._token, self._ip_address),
+                    StreamWrapper(stream, self._token, self._ip_address, self._device_id),
                     Loader=yaml.FullLoader,
                 )
             except yaml.YAMLError as exc:
@@ -163,6 +177,10 @@ class YamlController(ClimateController):
                 prop = create_property(key, nodes[key], connection)
                 if prop is not None:
                     self._properties[prop.id] = prop
+            
+            unique_id_prop = create_property(CONFIG_DEVICE_UNIQUE_ID, ac.get(CONFIG_DEVICE_UNIQUE_ID, {}), connection)
+            if unique_id_prop is not None:
+                self._uniqe_id_prop = unique_id_prop
 
             self._name = ac.get(ATTR_NAME, CONST_CONTROLLER_TYPE)
 
@@ -225,6 +243,8 @@ class YamlController(ClimateController):
             for prop in self._properties.values():
                 prop.update_state(device_state, debug)
                 self._attributes.update(prop.state_attributes)
+            if self._unique_id is None and self._uniqe_id_prop is not None:
+                self._unique_id = self._uniqe_id_prop.update_state(device_state, debug)
 
     def set_property(self, property_name, new_value):
         print("SETTING UP property {} to {}".format(property_name, new_value))
