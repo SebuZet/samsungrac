@@ -109,7 +109,7 @@ device:
       status_template: '8'
     max_temp:
       type: number
-      status_template: '30'
-  used_power:
-    type: number
-    status_template: '{% for key, value in device_state.items() %}{% if key == "AC_ADD2_USEDPOWER" %}{{value}}{% endif %}{% endfor %}'
+      status_template: '32'
+    used_power:
+      type: number
+      status_template: '{% for key, value in device_state.items() %}{% if key == "AC_ADD2_USEDPOWER" %}{{value}}{% endif %}{% endfor %}'
