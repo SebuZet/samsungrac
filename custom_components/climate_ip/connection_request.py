@@ -126,24 +126,27 @@ class ConnectionRequestBase(Connection):
                 self.logger.info("Setting up HTTP Adapter and ssl context")
                 session.mount('https://', SamsungHTTPAdapter())
                 self.logger.info(self._params)
+
                 try:
                     future = self._thread_pool.submit(session.request, **self._params)
-                    try:
-                        resp = future.result()
-                    except Exception:
-                        self.logger.info("Request exception:")
-                        self.logger.info(future.exception())
-
-                    self.logger.info(
-                        "Command executed with code: {}, text: {}".format(
-                            resp.status_code, resp.text
-                        )
-                    )
                 except:
                     # something goes wrong, print callstack and return None
                     self.logger.error("Request execution failed. Stack trace:")
                     traceback.print_exc()
                     return (None, False, 0)
+
+                try:
+                    resp = future.result()
+                except Exception:
+                    self.logger.info("Request exception:")
+                    self.logger.info(future.exception())
+                    return (None, False, 0)
+
+                self.logger.info(
+                    "Command executed with code: {}, text: {}".format(
+                        resp.status_code, resp.text
+                    )
+                )
 
         if resp and resp.ok:
             if resp.status_code == 200:
