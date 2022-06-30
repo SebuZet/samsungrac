@@ -5,6 +5,15 @@ import os
 import time
 import traceback
 
+import ssl
+from ssl import (
+    TLSVersion,
+)
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+from requests.packages.urllib3.util import ssl_
+
 from homeassistant.const import CONF_IP_ADDRESS, CONF_MAC, CONF_PORT, CONF_TOKEN
 
 from .connection import Connection, register_connection
@@ -18,6 +27,15 @@ from .yaml_const import (
 CONNECTION_TYPE_REQUEST = "request"
 CONNECTION_TYPE_REQUEST_PRINT = "request_print"
 
+class SamsungHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        ssl_context.set_ciphers("ALL:@SECLEVEL=0")
+        kwargs["ssl_context"] = ssl_context
+        return super().init_poolmanager(*args, **kwargs)
 
 class ConnectionRequestBase(Connection):
     def __init__(self, hass_config, logger):
@@ -105,10 +123,16 @@ class ConnectionRequestBase(Connection):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=InsecureRequestWarning)
             with requests.sessions.Session() as session:
+                self.logger.info("Setting up HTTP Adapter and ssl context")
+                session.mount('https://', SamsungHTTPAdapter())
                 self.logger.info(self._params)
                 try:
                     future = self._thread_pool.submit(session.request, **self._params)
-                    resp = future.result()
+                    try:
+                        resp = future.result()
+                    except Exception:
+                        self.logger.info("Request exception:")
+                        self.logger.info(future.exception())
 
                     self.logger.info(
                         "Command executed with code: {}, text: {}".format(
