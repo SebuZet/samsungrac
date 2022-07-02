@@ -137,8 +137,8 @@ class ConnectionRequestBase(Connection):
 
                 try:
                     resp = future.result()
-                except Exception:
-                    self.logger.info("Request exception:")
+                except:
+                    self.logger.info("Request result exception. Exception:")
                     self.logger.info(future.exception())
                     return (None, False, 0)
 
