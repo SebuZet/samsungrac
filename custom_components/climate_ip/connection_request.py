@@ -4,16 +4,9 @@ import logging
 import os
 import time
 import traceback
-
 import ssl
-from ssl import (
-    TLSVersion,
-)
 
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
-from requests.packages.urllib3.util import ssl_
-
 from homeassistant.const import CONF_IP_ADDRESS, CONF_MAC, CONF_PORT, CONF_TOKEN
 
 from .connection import Connection, register_connection
