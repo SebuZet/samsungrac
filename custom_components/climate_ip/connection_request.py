@@ -131,8 +131,7 @@ class ConnectionRequestBase(Connection):
                 try:
                     resp = future.result()
                 except:
-                    self.logger.info("Request result exception. Exception:")
-                    self.logger.info(future.exception())
+                    self.logger.error("Request result exception: {}".format(future.exception()))
                     return (None, False, 0)
 
                 self.logger.info(

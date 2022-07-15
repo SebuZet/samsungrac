@@ -245,7 +245,7 @@ class ConnectionSamsung2878(Connection):
         self.logger.info("Creating ssl context")
         sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         self.logger.info("Setting up ciphers")
-        sslContext.set_ciphers("HIGH:!DH:!aNULL")
+        sslContext.set_ciphers("ALL:@SECLEVEL=0")
         self.logger.info("Setting up verify mode")
         sslContext.verify_mode = (
             ssl.CERT_REQUIRED if cfg.cert is not None else ssl.CERT_NONE
