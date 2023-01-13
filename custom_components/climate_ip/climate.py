@@ -30,6 +30,7 @@ from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_LOW,
     DOMAIN,
     ClimateEntity,
+    HVAC_MODE_OFF,
 )
 from homeassistant.components.climate.const import (
     ATTR_MAX_TEMP,
@@ -49,6 +50,8 @@ from homeassistant.const import (
     STATE_ON,
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
+    STATE_UNKNOWN,
+    STATE_UNAVAILABLE,
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
@@ -297,7 +300,7 @@ class ClimateIP(ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return self.rac.get_property(ATTR_HVAC_MODE)
+        return HVAC_MODE_OFF if self.rac.get_property(ATTR_HVAC_MODE) in [STATE_UNKNOWN, STATE_UNAVAILABLE, ''] else self.rac.get_property(ATTR_HVAC_MODE)
 
     @property
     def hvac_modes(self):
