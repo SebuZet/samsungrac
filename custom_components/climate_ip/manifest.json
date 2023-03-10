@@ -9,7 +9,7 @@
   "integration_type": "device",
   "iot_class": "cloud_polling",
   "codeowners": [
-    "@SebuZet"
+    "@SebuZet",
     "@atxbyea"
   ],
   "requirements": [
