@@ -1,6 +1,3 @@
 {
   "name": "Climate IP",
-  "country": "NO",
-  "domains": ["climate", "switch"],
-  "homeassistant": "0.110.2"
 }
