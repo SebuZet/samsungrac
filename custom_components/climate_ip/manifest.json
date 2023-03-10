@@ -6,8 +6,11 @@
   "dependencies": [],
   "config_flow": false,
   "version": "3.5.2",
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
   "codeowners": [
     "@SebuZet"
+    "@atxbyea"
   ],
   "requirements": [
     "requests>=2.21.0",
