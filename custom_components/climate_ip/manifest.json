@@ -1,21 +1,25 @@
 {
   "domain": "climate_ip",
   "name": "Climate IP",
-  "documentation": "https://github.com/atxbyea/samsungrac",
-  "issue_tracker": "https://github.com/atxbyea/samsungrac/issues",
-  "dependencies": [],
+  "codeowners": [
+    "@atxbyea",
+    "@SebuZet"
+  ],
   "config_flow": false,
-  "version": "3.5.2",
+  "dependencies": [],
+  "documentation": "https://github.com/atxbyea/samsungrac",
   "integration_type": "device",
   "iot_class": "cloud_polling",
-  "codeowners": [
-    "@SebuZet",
-    "@atxbyea"
-  ],
+  "issue_tracker": "https://github.com/atxbyea/samsungrac/issues",
   "requirements": [
     "requests>=2.21.0",
     "xmljson>=0.2.0"
-  ]
+  ],
+  "version": "3.5.2"
+
+
+
+
 }
 
   

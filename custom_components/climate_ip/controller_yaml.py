@@ -86,7 +86,7 @@ class YamlController(ClimateController):
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
         self._yaml = config.get(CONF_CONFIG_FILE)
         self._ip_address = config.get(CONF_IP_ADDRESS, None)
-        self._device_id = config.get(CONF_DEVICE_ID, '032000000')
+        self._device_id = config.get(CONF_DEVICE_ID, "032000000")
         self._token = config.get(CONF_TOKEN, None)
         self._config = config
         self._retries_count = 0
@@ -98,7 +98,7 @@ class YamlController(ClimateController):
     @property
     def poll(self):
         return self._poll
-    
+
     @property
     def unique_id(self):
         return self._unique_id
@@ -125,7 +125,9 @@ class YamlController(ClimateController):
         with open(file, "r") as stream:
             try:
                 yaml_device = yaml.load(
-                    StreamWrapper(stream, self._token, self._ip_address, self._device_id),
+                    StreamWrapper(
+                        stream, self._token, self._ip_address, self._device_id
+                    ),
                     Loader=yaml.FullLoader,
                 )
             except yaml.YAMLError as exc:
@@ -177,8 +179,10 @@ class YamlController(ClimateController):
                 prop = create_property(key, nodes[key], connection)
                 if prop is not None:
                     self._properties[prop.id] = prop
-            
-            unique_id_prop = create_property(CONFIG_DEVICE_UNIQUE_ID, ac.get(CONFIG_DEVICE_UNIQUE_ID, {}), connection)
+
+            unique_id_prop = create_property(
+                CONFIG_DEVICE_UNIQUE_ID, ac.get(CONFIG_DEVICE_UNIQUE_ID, {}), connection
+            )
             if unique_id_prop is not None:
                 self._uniqe_id_prop = unique_id_prop
 
@@ -288,10 +292,10 @@ class YamlController(ClimateController):
 
     @property
     def operations(self):
-        """ Return a list of available operations """
+        """Return a list of available operations"""
         return self._operations_list
 
     @property
     def attributes(self):
-        """ Return a list of available attributes """
+        """Return a list of available attributes"""
         return self._properties_list

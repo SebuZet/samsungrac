@@ -370,6 +370,7 @@ class ModeOperation(BasicDeviceOperation):
         data[self.name + "_modes"] = self.values
         return data
 
+
 @register_property
 class UniqueIdProperty(DeviceProperty):
     def __init__(self, name, connection):
