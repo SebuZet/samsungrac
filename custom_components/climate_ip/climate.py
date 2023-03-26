@@ -56,7 +56,9 @@ from homeassistant.const import (
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.helpers.service import extract_entity_ids
-from homeassistant.util.temperature import convert as convert_temperature
+#from homeassistant.util.temperature import convert as convert_temperature
+from homeassistant.util.unit_conversion import TemperatureConverter
+
 
 from .controller import ATTR_POWER, ClimateController, create_controller
 from .yaml_const import (
@@ -203,6 +205,8 @@ class ClimateIP(ClimateEntity):
             if f in self.rac.operations:
                 features |= SUPPORTED_FEATURES_MAP[f]
         for f in SUPPORTED_FEATURES_MAP.keys():
+            _LOGGER.info("Feature: {}".format(f))
+            
             if f in self.rac.attributes:
                 features |= SUPPORTED_FEATURES_MAP[f]
         self._supported_features = features
@@ -223,14 +227,14 @@ class ClimateIP(ClimateEntity):
         t = self.rac.get_property(ATTR_MIN_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MIN
-        return convert_temperature(t, TEMP_CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def max_temp(self):
         t = self.rac.get_property(ATTR_MAX_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MAX
-        return convert_temperature(t, TEMP_CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def should_poll(self):
@@ -262,8 +266,8 @@ class ClimateIP(ClimateEntity):
 
     @property
     def state_attributes(self):
-        _LOGGER.info("state_attributes")
         attrs = self.rac.state_attributes
+        _LOGGER.info("state_attributes: {0}".format(attrs))
         attrs.update(super(ClimateIP, self).state_attributes)
         if self._name is not None:
             attrs[ATTR_NAME] = self._name
@@ -330,7 +334,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
             self.rac.set_property(
                 ATTR_TEMPERATURE,
-                convert_temperature(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TEMPERATURE)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
@@ -339,7 +343,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TARGET_TEMP_HIGH) is not None:
             self.rac.set_property(
                 ATTR_TARGET_TEMP_HIGH,
-                convert_temperature(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TARGET_TEMP_HIGH)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
@@ -348,7 +352,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TARGET_TEMP_LOW) is not None:
             self.rac.set_property(
                 ATTR_TARGET_TEMP_LOW,
-                convert_temperature(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TARGET_TEMP_LOW)),
                     self.temperature_unit,
                     TEMP_CELSIUS,

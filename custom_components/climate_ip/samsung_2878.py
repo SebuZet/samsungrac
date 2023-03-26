@@ -179,9 +179,13 @@ class ConnectionSamsung2878(Connection):
         self.logger.info("Status request sent")
 
     def handle_response_status_update(self, sslSocket, response):
+        self.logger.info("handle_response_status_update")
+
         attrs = response.split("><")
         for attr in attrs:
             f = re.match('Attr ID="(.*)" Value="(.*)"', attr)
+            self.logger.info("Attr: {0}".format(f))
+            
             if f:
                 k, v = f.group(1, 2)
                 self._device_status[k] = v

@@ -1,5 +1,7 @@
 import logging
 import os
+import time
+from datetime import datetime
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_component
@@ -199,6 +201,9 @@ class YamlController(ClimateController):
 
         self._operations_list = [v for v in self._operations.keys()]
         self._properties_list = [v for v in self._properties.keys()]
+        self._properties_list.append("last_sync")
+        self._properties_list.append("AC_SG_WIFI")
+        self._properties_list.append("AC_SG_INTERNET")
 
         return (len(self._operations) + len(self._properties)) > 0
 
@@ -233,8 +238,14 @@ class YamlController(ClimateController):
             else:
                 self._retries_count = CONST_MAX_GET_STATUS_RETRIES
                 self._last_device_state = device_state
-            if debug:
-                self._attributes.update(self._state_getter.state_attributes)
+            
+            #[lucadjc]: preferred to have always the attributed evaluated, removed condition on debug
+            #if debug:
+            self._attributes.update(self._state_getter.state_attributes)
+            
+            #[lucadjc]: added last sync date to send some alerts from hassio in case of connection error
+            self._attributes['last_sync'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
             self._logger.info("Updating operations...")
             for op in self._operations.values():
                 op.update_state(device_state, debug)
@@ -243,6 +254,8 @@ class YamlController(ClimateController):
             for prop in self._properties.values():
                 prop.update_state(device_state, debug)
                 self._attributes.update(prop.state_attributes)
+                for p in prop.state_attributes:
+                    self._logger.info(p)
             if self._unique_id is None and self._uniqe_id_prop is not None:
                 self._unique_id = self._uniqe_id_prop.update_state(device_state, debug)
 

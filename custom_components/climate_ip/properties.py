@@ -8,7 +8,9 @@ from homeassistant.const import (
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
 )
-from homeassistant.util.temperature import convert as convert_temperature
+
+#from homeassistant.util.temperature import convert as convert_temperature
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .connection import Connection
 from .yaml_const import (
@@ -499,7 +501,7 @@ class TemperatureOperation(BasicNumericOperation):
 
     def convert_dev_to_hass(self, dev_value):
         """Convert device state value to HASS."""
-        return convert_temperature(float(dev_value), self._unit, TEMP_CELSIUS)
+        return TemperatureConverter.convert(float(dev_value), self._unit, TEMP_CELSIUS)
 
     def convert_hass_to_dev(self, hass_value):
         v = hass_value
@@ -509,4 +511,4 @@ class TemperatureOperation(BasicNumericOperation):
         if self._max is not None and hass_value > self._max:
             v = self._max
 
-        return convert_temperature(float(v), TEMP_CELSIUS, self._unit)
+        return TemperatureConverter.convert(float(v), TEMP_CELSIUS, self._unit)
