@@ -219,6 +219,7 @@ class ConnectionSamsung2878(Connection):
         self.logger.info("Setting up verify mode")
         sslContext.verify_mode = ssl.CERT_REQUIRED if cfg.cert is not None else ssl.CERT_NONE
         if cfg.cert is not None:
+            sslContext.set_ciphers("ALL:@SECLEVEL=0")
             self.logger.info("Setting up verify location: {}".format(cfg.cert))
             sslContext.load_verify_locations(cafile = cfg.cert)
             self.logger.info("Setting up load cert chain: {}".format(cfg.cert))
