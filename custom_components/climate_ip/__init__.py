@@ -1,22 +1,12 @@
-DOMAIN = 'climate_ip'
+DOMAIN = "climate_ip"
 
-from .controller_yaml import (
-    YamlController,
-    )
-
-from .connection_request import (
-    ConnectionRequest, 
-    ConnectionRequestPrint,
-    )
-
-from .samsung_2878 import (
-    ConnectionSamsung2878, 
-    )
-
+from .connection_request import ConnectionRequest, ConnectionRequestPrint
+from .controller_yaml import YamlController
 from .properties import (
     GetJsonStatus,
     ModeOperation,
-    SwitchOperation,
     NumericOperation,
+    SwitchOperation,
     TemperatureOperation,
 )
+from .samsung_2878 import ConnectionSamsung2878
