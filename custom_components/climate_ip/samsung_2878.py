@@ -116,7 +116,7 @@ class ConnectionSamsung2878(Connection):
                     )
                     return False
                 if self._cfg.cert is None:
-                    self.logger.warning(
+                    self.logger.info(
                         "WARNING: 'cert' parameter is empty, skipping certificate validation"
                     )
                 self.logger.info(
