@@ -3,7 +3,11 @@
 # Use the following command to determine the appropriate device ID and adjust accordingly the params
 #   curl -v -k -H "Content-Type: application/json" -H "Authorization: Bearer __CLIMATE_IP_TOKEN__" --cert ac14k_m.pem -X GET https://__CLIMATE_IP_HOST__:8888/devices/
 device:
+  poll: true
   name: 'mim-h03_heatpump'
+  unique_id:
+    type: string
+    status_template: '{{ device_state.uuid }}'
   connection:
     type: request
     params: 
@@ -18,34 +22,47 @@ device:
     hvac: # hvac_mode
       type: modes
       connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/mode' }
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/__DEVICE_ID__/mode' }
       values:
-        'cool': { value : 'Opmode_Cool', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Cool"] } } } } }
-        'heat': { value : 'Opmode_Heat', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Heat"] } } } } }
+        cool: { value : 'Opmode_Cool', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Cool"] } } } } }
+        heat: { value : 'Opmode_Heat', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Heat"] } } } } }
         'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
-        # When switched to "Auto" mode the controller refuses to accept a temperature set command. For this reason the auto command is disabled
-        # auto: { value : 'Opmode_Auto', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Auto"] } } } } }
+        auto: { value : 'Opmode_Auto', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Auto"] } } } } }
+        heat_cool: { value : 'Opmode_Auto', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Auto"] } } } } }
+        fan_only: { value : 'Opmode_Fan', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Fan"] } } } } }
+        dry: { value : 'Opmode_Dry', connection: { params: { json: { "Operation": { "power" : "On" }, "Mode": { "modes": ["Opmode_Dry"] } } } } }
       status_template: "{% if device_state.Operation.power == 'Off' -%}Off{%- elif device_state.Operation.power == 'On' -%}{{ device_state.Mode.modes.0 }}{%- endif %}"
-#    power:
-#      type: switch
-#      connection:
-#        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/operation' }
-#      values:
-#        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
-#        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
-#      status_template: '{{ device_state.Operation.power }}'
+    power:
+      type: switch
+      connection:
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/__DEVICE_ID__/operation' }
+      values:
+        'off': { value: 'Off', connection: { params: { json: { "Operation": { "power" : "Off" } } } } }
+        'on': { value: 'On', connection: { params: { json: { "Operation": { "power" : "On" } } } } }
+      status_template: '{{ device_state.Operation.power }}'
     beep:
       type: switch
       connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/mode' }
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/__DEVICE_ID__/mode' }
       values:
         'off': { value: 'Volume_Mute', connection: { params: { json: { "options": [ "Volume_Mute"] } } } }
         'on': { value: 'Volume_100', connection: { params: { json: { "options": [ "Volume_100"] } } } }
       status_template: '{{ device_state.Mode.options.0 }}'
+    fan: # fan_mode
+      type: modes
+      connection:
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/__DEVICE_ID__/wind' }
+      values:
+        # For some reason, the values a bit opposite
+        'Auto': { value : '0', connection: { params: { json: { "Wind": { "speedLevel": 0 } } } } }
+        'Low': { value : '4', connection: { params: { json: { "Wind": { "speedLevel": 4 } } } } }
+        'Medium': { value : '3', connection: { params: { json: { "Wind": { "speedLevel": 3 } } } } }
+        'High': { value : '2', connection: { params: { json: { "Wind": { "speedLevel": 2 } } } } }
+      status_template: '{{ device_state.Wind.speedLevel }}'
     temperature:
       type: number
       connection:
-        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/032000000/temperatures/0' }
+        params: { method: 'PUT', url: 'https://__CLIMATE_IP_HOST__:8888/devices/__DEVICE_ID__/temperatures/0' }
       min: 16
       max: 55
       status_template: '{{ device_state.Temperatures.0.desired | int }}'
@@ -54,9 +71,9 @@ device:
     current_temperature:
       type: number
       status_template: '{{ device_state.Temperatures.0.current }}'
-    current_outside_temperature:
+    target_temperature:
       type: number
-      status_template: '{{ device_state.Temperatures.2.current }}'
+      status_template: '{{ device_state.Temperatures.0.desired }}'
     min_temp:
       type: number
       status_template: '{{ device_state.Temperatures.0.minimum }}'
