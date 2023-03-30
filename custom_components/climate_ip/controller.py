@@ -49,12 +49,12 @@ class ClimateController:
 
     @property
     def operations(self):
-        """Return a list of available operations"""
+        """ Return a list of available operations """
         return []
 
     @property
     def attributes(self):
-        """Return a list of available attributes"""
+        """ Return a list of available attributes """
         return []
 
 

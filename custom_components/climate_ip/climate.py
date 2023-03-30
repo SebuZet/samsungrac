@@ -29,8 +29,8 @@ from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     DOMAIN,
-    HVAC_MODE_OFF,
     ClimateEntity,
+    HVAC_MODE_OFF,
 )
 from homeassistant.components.climate.const import (
     ATTR_MAX_TEMP,
@@ -48,15 +48,17 @@ from homeassistant.const import (
     CONF_TOKEN,
     STATE_OFF,
     STATE_ON,
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
+    STATE_UNKNOWN,
+    STATE_UNAVAILABLE,
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.helpers.service import extract_entity_ids
+#from homeassistant.util.temperature import convert as convert_temperature
 from homeassistant.util.unit_conversion import TemperatureConverter
+
 
 from .controller import ATTR_POWER, ClimateController, create_controller
 from .yaml_const import (
@@ -111,12 +113,13 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(
             CONFIG_DEVICE_UPDATE_DELAY, default=DEFAULT_UPDATE_DELAY
         ): cv.string,
-        vol.Optional(CONF_DEVICE_ID, default="032000000"): cv.string,
+        vol.Optional(CONF_DEVICE_ID, default='032000000'): cv.string,
     }
 )
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+
     _LOGGER.setLevel(logging.INFO if config.get("debug", False) else logging.ERROR)
     _LOGGER.info("climate_ip: async setup platform")
 
@@ -127,7 +130,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     except Exception as e:
         _LOGGER.error("climate_ip: error while creating controller!")
         import traceback
-
         _LOGGER.error(traceback.format_exc())
         _LOGGER.error(e)
         raise
@@ -189,6 +191,8 @@ class ClimateIP(ClimateEntity):
     def __init__(self, rac_controller, config):
         self.rac = rac_controller
         self._name = config.get(CONFIG_DEVICE_NAME, None)
+        _LOGGER.info("self._name: {}".format(self._name))
+        
         self._poll = None
         self._unique_id = None
         str_poll = config.get(CONFIG_DEVICE_POLL, "")
@@ -203,6 +207,8 @@ class ClimateIP(ClimateEntity):
             if f in self.rac.operations:
                 features |= SUPPORTED_FEATURES_MAP[f]
         for f in SUPPORTED_FEATURES_MAP.keys():
+            _LOGGER.info("Feature: {}".format(f))
+            
             if f in self.rac.attributes:
                 features |= SUPPORTED_FEATURES_MAP[f]
         self._supported_features = features
@@ -223,14 +229,14 @@ class ClimateIP(ClimateEntity):
         t = self.rac.get_property(ATTR_MIN_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MIN
-        return TemperatureConverter(t, TEMP_CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def max_temp(self):
         t = self.rac.get_property(ATTR_MAX_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MAX
-        return TemperatureConverter(t, TEMP_CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def should_poll(self):
@@ -247,7 +253,7 @@ class ClimateIP(ClimateEntity):
         if self._unique_id is None and self.rac.unique_id is not None:
             _LOGGER.info("About to set unique id {}".format(self.rac.unique_id))
             self._unique_id = "climate_ip_" + self.rac.unique_id
-
+          
         _LOGGER.info("Returning unique id of {}".format(self._unique_id))
         return self._unique_id
 
@@ -262,8 +268,8 @@ class ClimateIP(ClimateEntity):
 
     @property
     def state_attributes(self):
-        _LOGGER.info("state_attributes")
         attrs = self.rac.state_attributes
+        _LOGGER.info("state_attributes: {0}".format(attrs))
         attrs.update(super(ClimateIP, self).state_attributes)
         if self._name is not None:
             attrs[ATTR_NAME] = self._name
@@ -300,12 +306,7 @@ class ClimateIP(ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return (
-            HVAC_MODE_OFF
-            if self.rac.get_property(ATTR_HVAC_MODE)
-            in [STATE_UNKNOWN, STATE_UNAVAILABLE, ""]
-            else self.rac.get_property(ATTR_HVAC_MODE)
-        )
+        return HVAC_MODE_OFF if self.rac.get_property(ATTR_HVAC_MODE) in [STATE_UNKNOWN, STATE_UNAVAILABLE, ''] else self.rac.get_property(ATTR_HVAC_MODE)
 
     @property
     def hvac_modes(self):
@@ -335,7 +336,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
             self.rac.set_property(
                 ATTR_TEMPERATURE,
-                TemperatureConverter(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TEMPERATURE)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
@@ -344,7 +345,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TARGET_TEMP_HIGH) is not None:
             self.rac.set_property(
                 ATTR_TARGET_TEMP_HIGH,
-                TemperatureConverter(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TARGET_TEMP_HIGH)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
@@ -353,7 +354,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TARGET_TEMP_LOW) is not None:
             self.rac.set_property(
                 ATTR_TARGET_TEMP_LOW,
-                TemperatureConverter(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TARGET_TEMP_LOW)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
