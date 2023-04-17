@@ -7,8 +7,7 @@
   "config_flow": false,
   "version": "3.5.2",
   "codeowners": [
-    "@SebuZet",
-	"lucadjc"
+    "@SebuZet"
   ],
   "requirements": [
     "requests>=2.21.0",
