@@ -223,14 +223,14 @@ class ClimateIP(ClimateEntity):
         t = self.rac.get_property(ATTR_MIN_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MIN
-        return TemperatureConverter(t, TEMP_CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def max_temp(self):
         t = self.rac.get_property(ATTR_MAX_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MAX
-        return TemperatureConverter(t, TEMP_CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def should_poll(self):
@@ -335,7 +335,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
             self.rac.set_property(
                 ATTR_TEMPERATURE,
-                TemperatureConverter(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TEMPERATURE)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
@@ -344,7 +344,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TARGET_TEMP_HIGH) is not None:
             self.rac.set_property(
                 ATTR_TARGET_TEMP_HIGH,
-                TemperatureConverter(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TARGET_TEMP_HIGH)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
@@ -353,7 +353,7 @@ class ClimateIP(ClimateEntity):
         if kwargs.get(ATTR_TARGET_TEMP_LOW) is not None:
             self.rac.set_property(
                 ATTR_TARGET_TEMP_LOW,
-                TemperatureConverter(
+                TemperatureConverter.convert(
                     int(kwargs.get(ATTR_TARGET_TEMP_LOW)),
                     self.temperature_unit,
                     TEMP_CELSIUS,
