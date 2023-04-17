@@ -32,7 +32,7 @@ device:
         'Good Sleep': { value : 'Sleep' }
         'Single User': { value : 'Smart' }
         'Comfort': { value : 'SoftCool' }
-        'Fast Turbo': { value : 'WindMode3' }
+        'Fast Turbo': { value : 'TurboMode' }
       status_template: '{% for key, value in device_state.items() %}{% if key == "AC_FUN_COMODE" %}{{value}}{% endif %}{% endfor %}'
       connection_template: '<Request Type="DeviceControl"><Control CommandID="AC_FUN_COMODE" DUID="{{duid}}"><Attr ID="AC_FUN_COMODE" Value="{{value}}" /></Control></Request>'
       validation_template: '{% if "AC_FUN_COMODE" in device_state %}valid{% endif %}'
