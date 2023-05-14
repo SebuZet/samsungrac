@@ -7,7 +7,8 @@ https://github.com/SebuZet/samsungrac
 """
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.util.temperature import convert as convert_temperature
+#from homeassistant.util.temperature import convert as convert_temperature 
+#Nick398 No longer required. Fixes deprecation of convert_temperature
 from homeassistant.helpers.service import extract_entity_ids
 import homeassistant.helpers.entity_component
 import homeassistant.helpers.config_validation as cv
@@ -174,14 +175,16 @@ class ClimateIP(ClimateEntity):
         t = self.rac.get_property(ATTR_MIN_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MIN
-        return convert_temperature(t, TEMP_CELSIUS, self.temperature_unit)
+        return t
+        #return convert_temperature(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def max_temp(self):
         t = self.rac.get_property(ATTR_MAX_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MAX
-        return convert_temperature(t, TEMP_CELSIUS, self.temperature_unit)
+        return t
+        #return convert_temperature(t, TEMP_CELSIUS, self.temperature_unit)
 
     @property
     def should_poll(self):
@@ -270,14 +273,14 @@ class ClimateIP(ClimateEntity):
 
     def set_temperature(self, **kwargs):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
-            self.rac.set_property(ATTR_TEMPERATURE, convert_temperature(
-                int(kwargs.get(ATTR_TEMPERATURE)), self.temperature_unit, TEMP_CELSIUS))
+            self.rac.set_property(ATTR_TEMPERATURE, int(kwargs.get(ATTR_TEMPERATURE)))
+            #self.rac.set_property(ATTR_TEMPERATURE, convert_temperature(int(kwargs.get(ATTR_TEMPERATURE)), self.temperature_unit, TEMP_CELSIUS))
         if kwargs.get(ATTR_TARGET_TEMP_HIGH) is not None:
-            self.rac.set_property(ATTR_TARGET_TEMP_HIGH, convert_temperature(
-                int(kwargs.get(ATTR_TARGET_TEMP_HIGH)), self.temperature_unit, TEMP_CELSIUS))
+            self.rac.set_property(ATTR_TARGET_TEMP_HIGH, int(kwargs.get(ATTR_TARGET_TEMP_HIGH)))
+            #self.rac.set_property(ATTR_TARGET_TEMP_HIGH, convert_temperature(int(kwargs.get(ATTR_TARGET_TEMP_HIGH)), self.temperature_unit, TEMP_CELSIUS))
         if kwargs.get(ATTR_TARGET_TEMP_LOW) is not None:
-            self.rac.set_property(ATTR_TARGET_TEMP_LOW, convert_temperature(
-                int(kwargs.get(ATTR_TARGET_TEMP_LOW)), self.temperature_unit, TEMP_CELSIUS))
+            self.rac.set_property(ATTR_TARGET_TEMP_LOW, int(kwargs.get(ATTR_TARGET_TEMP_LOW)))
+            #self.rac.set_property(ATTR_TARGET_TEMP_LOW, convert_temperature(int(kwargs.get(ATTR_TARGET_TEMP_LOW)), self.temperature_unit, TEMP_CELSIUS))
         self.schedule_update_ha_state(True)
 
     def set_swing_mode(self, swing_mode):
