@@ -116,7 +116,7 @@ class ConnectionSamsung2878(Connection):
                     )
                     return False
                 if self._cfg.cert is None:
-                    self.logger.warning(
+                    self.logger.info(
                         "WARNING: 'cert' parameter is empty, skipping certificate validation"
                     )
                 self.logger.info(
@@ -179,9 +179,13 @@ class ConnectionSamsung2878(Connection):
         self.logger.info("Status request sent")
 
     def handle_response_status_update(self, sslSocket, response):
+        self.logger.info("handle_response_status_update")
+
         attrs = response.split("><")
         for attr in attrs:
             f = re.match('Attr ID="(.*)" Value="(.*)"', attr)
+            self.logger.info("Attr: {0}".format(f))
+            
             if f:
                 k, v = f.group(1, 2)
                 self._device_status[k] = v
@@ -245,12 +249,13 @@ class ConnectionSamsung2878(Connection):
         self.logger.info("Creating ssl context")
         sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         self.logger.info("Setting up ciphers")
-        sslContext.set_ciphers("ALL:@SECLEVEL=0")
+        sslContext.set_ciphers("HIGH:!DH:!aNULL")
         self.logger.info("Setting up verify mode")
         sslContext.verify_mode = (
             ssl.CERT_REQUIRED if cfg.cert is not None else ssl.CERT_NONE
         )
         if cfg.cert is not None:
+            sslContext.set_ciphers("ALL:@SECLEVEL=0")
             self.logger.info("Setting up verify location: {}".format(cfg.cert))
             sslContext.load_verify_locations(cafile=cfg.cert)
             self.logger.info("Setting up load cert chain: {}".format(cfg.cert))

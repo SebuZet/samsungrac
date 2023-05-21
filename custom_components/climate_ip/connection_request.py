@@ -2,12 +2,12 @@ import concurrent.futures
 import json
 import logging
 import os
-import ssl
 import time
 import traceback
+import ssl
 
-from homeassistant.const import CONF_IP_ADDRESS, CONF_MAC, CONF_PORT, CONF_TOKEN
 from requests.adapters import HTTPAdapter
+from homeassistant.const import CONF_IP_ADDRESS, CONF_MAC, CONF_PORT, CONF_TOKEN
 
 from .connection import Connection, register_connection
 from .yaml_const import (
@@ -20,7 +20,6 @@ from .yaml_const import (
 CONNECTION_TYPE_REQUEST = "request"
 CONNECTION_TYPE_REQUEST_PRINT = "request_print"
 
-
 class SamsungHTTPAdapter(HTTPAdapter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -31,7 +30,6 @@ class SamsungHTTPAdapter(HTTPAdapter):
         kwargs["ssl_context"] = ssl_context
         return super().init_poolmanager(*args, **kwargs)
 
-
 class ConnectionRequestBase(Connection):
     def __init__(self, hass_config, logger):
         super(ConnectionRequestBase, self).__init__(hass_config, logger)
@@ -41,7 +39,7 @@ class ConnectionRequestBase(Connection):
         self.update_configuration_from_hass(hass_config)
         self._condition_template = None
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
+    
     def __del__(self):
         self._thread_pool.shutdown(wait=False)
 
@@ -119,7 +117,7 @@ class ConnectionRequestBase(Connection):
             warnings.filterwarnings("ignore", category=InsecureRequestWarning)
             with requests.sessions.Session() as session:
                 self.logger.info("Setting up HTTP Adapter and ssl context")
-                session.mount("https://", SamsungHTTPAdapter())
+                session.mount('https://', SamsungHTTPAdapter())
                 self.logger.info(self._params)
 
                 try:
@@ -133,9 +131,7 @@ class ConnectionRequestBase(Connection):
                 try:
                     resp = future.result()
                 except:
-                    self.logger.error(
-                        "Request result exception: {}".format(future.exception())
-                    )
+                    self.logger.error("Request result exception: {}".format(future.exception()))
                     return (None, False, 0)
 
                 self.logger.info(
