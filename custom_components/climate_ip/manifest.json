@@ -12,7 +12,8 @@
   "requirements": [
     "requests>=2.21.0",
     "xmljson>=0.2.0"
-  ]
+  ],
+  "iot_class": "local_polling"
 }
 
   
