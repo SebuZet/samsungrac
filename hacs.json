@@ -1,3 +1,4 @@
 {
-  "name": "Climate IP"
+  "name": "Climate IP",
+  "iot_class": "cloud_polling"
 }
