@@ -1,9 +1,10 @@
 {
   "ExpandedNodes": [
     "",
+    "\\.github\\workflows",
     "\\custom_components",
     "\\custom_components\\climate_ip"
   ],
-  "SelectedNode": "\\custom_components\\climate_ip\\ac14k_m.pem",
+  "SelectedNode": "\\custom_components\\climate_ip\\manifest.json",
   "PreviewInSolutionExplorer": false
 }

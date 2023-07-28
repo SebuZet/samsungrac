@@ -250,10 +250,16 @@ class ClimateIP(ClimateEntity):
 
     @property
     def unique_id(self):
-        if self._unique_id is None and self.rac.unique_id is not None:
-            _LOGGER.info("About to set unique id {}".format(self.rac.unique_id))
-            self._unique_id = "climate_ip_" + self.rac.unique_id
-          
+        #if self._unique_id is None and self.rac.unique_id is not None:
+        #    _LOGGER.info("About to set unique id {}".format(self.rac.unique_id))
+        #    self._unique_id = "climate_ip_" + self.rac.unique_id
+
+        if self._unique_id is None:
+            name_value = self._name #config.get(CONF_MAC, None) #self._cfg.duid
+            _LOGGER.info("About to set unique id {}".format(name_value))
+            self._unique_id = "climate_ip_" + name_value
+
+
         _LOGGER.info("Returning unique id of {}".format(self._unique_id))
         return self._unique_id
 
