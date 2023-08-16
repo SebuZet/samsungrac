@@ -194,7 +194,8 @@ class ClimateIP(ClimateEntity):
         _LOGGER.info("self._name: {}".format(self._name))
         
         self._poll = None
-        self._unique_id = None
+        self._unique_id = self._name
+        _LOGGER.info("self._unique_id: {}".format(self._unique_id))
         str_poll = config.get(CONFIG_DEVICE_POLL, "")
         if str_poll:
             str_poll = str_poll.lower()
@@ -255,10 +256,9 @@ class ClimateIP(ClimateEntity):
         #    self._unique_id = "climate_ip_" + self.rac.unique_id
 
         if self._unique_id is None:
-            name_value = self._name #config.get(CONF_MAC, None) #self._cfg.duid
+            name_value = self._name
             _LOGGER.info("About to set unique id {}".format(name_value))
             self._unique_id = "climate_ip_" + name_value
-
 
         _LOGGER.info("Returning unique id of {}".format(self._unique_id))
         return self._unique_id
