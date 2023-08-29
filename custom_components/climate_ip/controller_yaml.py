@@ -1,8 +1,8 @@
+import json
 import logging
 import os
 import time
 from datetime import datetime
-import json
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_component
@@ -89,19 +89,19 @@ class YamlController(ClimateController):
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
         self._yaml = config.get(CONF_CONFIG_FILE)
         self._ip_address = config.get(CONF_IP_ADDRESS, None)
-        self._device_id = config.get(CONF_DEVICE_ID, '032000000')
+        self._device_id = config.get(CONF_DEVICE_ID, "032000000")
         self._token = config.get(CONF_TOKEN, None)
         self._config = config
         self._retries_count = 0
         self._last_device_state = None
         self._poll = None
-        self._unique_id = None
+        self._unique_id = self._device_id
         self._uniqe_id_prop = None
 
     @property
     def poll(self):
         return self._poll
-    
+
     @property
     def unique_id(self):
         return self._unique_id
@@ -128,7 +128,9 @@ class YamlController(ClimateController):
         with open(file, "r") as stream:
             try:
                 yaml_device = yaml.load(
-                    StreamWrapper(stream, self._token, self._ip_address, self._device_id),
+                    StreamWrapper(
+                        stream, self._token, self._ip_address, self._device_id
+                    ),
                     Loader=yaml.FullLoader,
                 )
             except yaml.YAMLError as exc:
@@ -180,8 +182,10 @@ class YamlController(ClimateController):
                 prop = create_property(key, nodes[key], connection)
                 if prop is not None:
                     self._properties[prop.id] = prop
-            
-            unique_id_prop = create_property(CONFIG_DEVICE_UNIQUE_ID, ac.get(CONFIG_DEVICE_UNIQUE_ID, {}), connection)
+
+            unique_id_prop = create_property(
+                CONFIG_DEVICE_UNIQUE_ID, ac.get(CONFIG_DEVICE_UNIQUE_ID, {}), connection
+            )
             if unique_id_prop is not None:
                 self._uniqe_id_prop = unique_id_prop
 
@@ -194,7 +198,7 @@ class YamlController(ClimateController):
             device_state = self._state_getter.value
             for op in self._operations.values():
                 self._logger.info("Removing invalid operation '{}'".format(op.id))
-                
+
                 if op.is_valid(device_state):
                     ops[op.id] = op
                 else:
@@ -238,11 +242,11 @@ class YamlController(ClimateController):
         self._logger.info("Updating state...")
         if self._state_getter is not None:
             self._attributes = {ATTR_NAME: self.name}
-            self._logger.info("Updating getter...")            
+            self._logger.info("Updating getter...")
             self._state_getter.update_state(self._state_getter.value, debug)
             device_state = self._state_getter.value
             self._logger.info("Getter updated with value: {}".format(device_state))
-            
+
             if device_state is None and self._retries_count > 0:
                 --self._retries_count
                 device_state = self._last_device_state
@@ -252,32 +256,43 @@ class YamlController(ClimateController):
             else:
                 self._retries_count = CONST_MAX_GET_STATUS_RETRIES
                 self._last_device_state = device_state
-            
-            #[lucadjc]: preferred to have always the attributed evaluated, removed condition on debug
-            #if debug:
-            self._attributes.update(self._state_getter.state_attributes)
-            
-            #[lucadjc]: added last sync date to send some alerts from hassio in case of connection error
-            self._attributes['last_sync'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            toJSON = json.dumps(self._state_getter.state_attributes['device_state'])
+            # [lucadjc]: preferred to have always the attributed evaluated, removed condition on debug
+            # if debug:
+            self._attributes.update(self._state_getter.state_attributes)
+
+            # [lucadjc]: added last sync date to send some alerts from hassio in case of connection error
+            self._attributes["last_sync"] = ""
+
+            toJSON = json.dumps(self._state_getter.state_attributes["device_state"])
             try:
                 json_data = json.loads(json.loads(toJSON))
-                self._attributes['AC_FUN_ENABLE'] = json_data['AC_FUN_ENABLE']
-                self._attributes['AC_FUN_COMODE'] = json_data['AC_FUN_ENABLE']
-                self._attributes['AC_FUN_ERROR'] = json_data['AC_FUN_ERROR']
-                self._attributes['AC_SG_WIFI'] = json_data['AC_SG_WIFI']
-                self._attributes['AC_SG_INTERNET'] = json_data['AC_SG_INTERNET']
-                self._attributes['AC_ADD2_USEDWATT'] = json_data['AC_ADD2_USEDWATT']
-                self._attributes['AC_ADD2_VERSION'] = json_data['AC_ADD2_VERSION']
-                self._attributes['AC_ADD2_PANEL_VERSION'] = json_data['AC_ADD2_PANEL_VERSION']
-                self._attributes['AC_ADD2_OUT_VERSION'] = json_data['AC_ADD2_OUT_VERSION']
-                self._attributes['AC_ADD2_OPTIONCODE'] = json_data['AC_ADD2_OPTIONCODE']
-                self._attributes['AC_ADD2_USEDTIME'] = json_data['AC_ADD2_USEDTIME']
-                self._attributes['AC_ADD2_FILTER_USE_TIME'] = json_data['AC_ADD2_FILTER_USE_TIME']
+                self._attributes["AC_FUN_ENABLE"] = json_data["AC_FUN_ENABLE"]
+                self._attributes["AC_FUN_COMODE"] = json_data["AC_FUN_ENABLE"]
+                self._attributes["AC_FUN_ERROR"] = json_data["AC_FUN_ERROR"]
+                self._attributes["AC_SG_WIFI"] = json_data["AC_SG_WIFI"]
+                self._attributes["AC_SG_INTERNET"] = json_data["AC_SG_INTERNET"]
+                self._attributes["AC_ADD2_USEDWATT"] = json_data["AC_ADD2_USEDWATT"]
+                self._attributes["AC_ADD2_VERSION"] = json_data["AC_ADD2_VERSION"]
+                self._attributes["AC_ADD2_PANEL_VERSION"] = json_data[
+                    "AC_ADD2_PANEL_VERSION"
+                ]
+                self._attributes["AC_ADD2_OUT_VERSION"] = json_data[
+                    "AC_ADD2_OUT_VERSION"
+                ]
+                self._attributes["AC_ADD2_OPTIONCODE"] = json_data["AC_ADD2_OPTIONCODE"]
+                self._attributes["AC_ADD2_USEDTIME"] = json_data["AC_ADD2_USEDTIME"]
+                self._attributes["AC_ADD2_FILTER_USE_TIME"] = json_data[
+                    "AC_ADD2_FILTER_USE_TIME"
+                ]
+
+                if len(json_data["AC_ADD2_OUT_VERSION"]) != 0:
+                    self._attributes["last_sync"] = datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
             except:
                 self._logger.info("Error: update_state")
-                
+
             self._logger.info("Updating operations...")
             for op in self._operations.values():
                 op.update_state(device_state, debug)
@@ -292,7 +307,9 @@ class YamlController(ClimateController):
                 self._unique_id = self._uniqe_id_prop.update_state(device_state, debug)
 
     def set_property(self, property_name, new_value):
-        self._logger.info("SETTING UP property {} to {}".format(property_name, new_value))
+        self._logger.info(
+            "SETTING UP property {} to {}".format(property_name, new_value)
+        )
         op = self._operations.get(property_name, None)
         if op is not None:
             result = op.set_value(new_value)
@@ -333,10 +350,10 @@ class YamlController(ClimateController):
 
     @property
     def operations(self):
-        """ Return a list of available operations """
+        """Return a list of available operations"""
         return self._operations_list
 
     @property
     def attributes(self):
-        """ Return a list of available attributes """
+        """Return a list of available attributes"""
         return self._properties_list

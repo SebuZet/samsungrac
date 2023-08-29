@@ -29,8 +29,8 @@ from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     DOMAIN,
-    ClimateEntity,
     HVAC_MODE_OFF,
+    ClimateEntity,
 )
 from homeassistant.components.climate.const import (
     ATTR_MAX_TEMP,
@@ -48,17 +48,17 @@ from homeassistant.const import (
     CONF_TOKEN,
     STATE_OFF,
     STATE_ON,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
-    STATE_UNKNOWN,
-    STATE_UNAVAILABLE,
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.helpers.service import extract_entity_ids
-#from homeassistant.util.temperature import convert as convert_temperature
-from homeassistant.util.unit_conversion import TemperatureConverter
 
+# from homeassistant.util.temperature import convert as convert_temperature
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .controller import ATTR_POWER, ClimateController, create_controller
 from .yaml_const import (
@@ -113,13 +113,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(
             CONFIG_DEVICE_UPDATE_DELAY, default=DEFAULT_UPDATE_DELAY
         ): cv.string,
-        vol.Optional(CONF_DEVICE_ID, default='032000000'): cv.string,
+        vol.Optional(CONF_DEVICE_ID, default="032000000"): cv.string,
     }
 )
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-
     _LOGGER.setLevel(logging.INFO if config.get("debug", False) else logging.ERROR)
     _LOGGER.info("climate_ip: async setup platform")
 
@@ -130,6 +129,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     except Exception as e:
         _LOGGER.error("climate_ip: error while creating controller!")
         import traceback
+
         _LOGGER.error(traceback.format_exc())
         _LOGGER.error(e)
         raise
@@ -192,9 +192,10 @@ class ClimateIP(ClimateEntity):
         self.rac = rac_controller
         self._name = config.get(CONFIG_DEVICE_NAME, None)
         _LOGGER.info("self._name: {}".format(self._name))
-        
+
         self._poll = None
-        self._unique_id = None
+        self._unique_id = self._name
+        _LOGGER.info("self._unique_id: {}".format(self._unique_id))
         str_poll = config.get(CONFIG_DEVICE_POLL, "")
         if str_poll:
             str_poll = str_poll.lower()
@@ -208,7 +209,7 @@ class ClimateIP(ClimateEntity):
                 features |= SUPPORTED_FEATURES_MAP[f]
         for f in SUPPORTED_FEATURES_MAP.keys():
             _LOGGER.info("Feature: {}".format(f))
-            
+
             if f in self.rac.attributes:
                 features |= SUPPORTED_FEATURES_MAP[f]
         self._supported_features = features
@@ -250,10 +251,15 @@ class ClimateIP(ClimateEntity):
 
     @property
     def unique_id(self):
-        if self._unique_id is None and self.rac.unique_id is not None:
-            _LOGGER.info("About to set unique id {}".format(self.rac.unique_id))
-            self._unique_id = "climate_ip_" + self.rac.unique_id
-          
+        # if self._unique_id is None and self.rac.unique_id is not None:
+        #    _LOGGER.info("About to set unique id {}".format(self.rac.unique_id))
+        #    self._unique_id = "climate_ip_" + self.rac.unique_id
+
+        if self._unique_id is None:
+            name_value = self._name
+            _LOGGER.info("About to set unique id {}".format(name_value))
+            self._unique_id = "climate_ip_" + name_value
+
         _LOGGER.info("Returning unique id of {}".format(self._unique_id))
         return self._unique_id
 
@@ -306,7 +312,12 @@ class ClimateIP(ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return HVAC_MODE_OFF if self.rac.get_property(ATTR_HVAC_MODE) in [STATE_UNKNOWN, STATE_UNAVAILABLE, ''] else self.rac.get_property(ATTR_HVAC_MODE)
+        return (
+            HVAC_MODE_OFF
+            if self.rac.get_property(ATTR_HVAC_MODE)
+            in [STATE_UNKNOWN, STATE_UNAVAILABLE, ""]
+            else self.rac.get_property(ATTR_HVAC_MODE)
+        )
 
     @property
     def hvac_modes(self):

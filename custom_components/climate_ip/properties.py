@@ -9,7 +9,7 @@ from homeassistant.const import (
     TEMP_FAHRENHEIT,
 )
 
-#from homeassistant.util.temperature import convert as convert_temperature
+# from homeassistant.util.temperature import convert as convert_temperature
 from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .connection import Connection
@@ -371,6 +371,7 @@ class ModeOperation(BasicDeviceOperation):
         data[self.id] = self.value
         data[self.name + "_modes"] = self.values
         return data
+
 
 @register_property
 class UniqueIdProperty(DeviceProperty):
