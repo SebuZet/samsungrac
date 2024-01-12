@@ -29,7 +29,7 @@ from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     DOMAIN,
-    HVAC_MODE_OFF,
+    HVACMode.OFF,
     ClimateEntity,
 )
 from homeassistant.components.climate.const import (
@@ -313,7 +313,7 @@ class ClimateIP(ClimateEntity):
     @property
     def hvac_mode(self):
         return (
-            HVAC_MODE_OFF
+            HVACMode.OFF
             if self.rac.get_property(ATTR_HVAC_MODE)
             in [STATE_UNKNOWN, STATE_UNAVAILABLE, ""]
             else self.rac.get_property(ATTR_HVAC_MODE)
