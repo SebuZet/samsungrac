@@ -5,8 +5,8 @@ from homeassistant.const import (
     STATE_OFF,
     STATE_ON,
     STATE_UNKNOWN,
-    TEMP_CELSIUS,
-    TEMP_FAHRENHEIT,
+    UnitOfTemperature.CELSIUS,
+    UnitOfTemperature.FAHRENHEIT,
 )
 
 # from homeassistant.util.temperature import convert as convert_temperature
@@ -37,14 +37,14 @@ PROPERTY_TYPE_TEMP = "temperature"
 STATUS_GETTER_JSON = "json_status"
 
 UNIT_MAP = {
-    "C": TEMP_CELSIUS,
-    "c": TEMP_CELSIUS,
-    "Celsius": TEMP_CELSIUS,
-    "F": TEMP_FAHRENHEIT,
-    "f": TEMP_FAHRENHEIT,
-    "Fahrenheit": TEMP_FAHRENHEIT,
-    TEMP_CELSIUS: TEMP_CELSIUS,
-    TEMP_FAHRENHEIT: TEMP_FAHRENHEIT,
+    "C": UnitOfTemperature.CELSIUS,
+    "c": UnitOfTemperature.CELSIUS,
+    "Celsius": UnitOfTemperature.CELSIUS,
+    "F": UnitOfTemperature.FAHRENHEIT,
+    "f": UnitOfTemperature.FAHRENHEIT,
+    "Fahrenheit": UnitOfTemperature.FAHRENHEIT,
+    UnitOfTemperature.CELSIUS: UnitOfTemperature.CELSIUS,
+    UnitOfTemperature.FAHRENHEIT: UnitOfTemperature.FAHRENHEIT,
 }
 
 test_json = {
@@ -470,7 +470,7 @@ class TemperatureOperation(BasicNumericOperation):
     def __init__(self, name, connection):
         super(TemperatureOperation, self).__init__(name, connection)
         self._unit_template = None
-        self._unit = TEMP_CELSIUS
+        self._unit = UnitOfTemperature.CELSIUS
 
     @staticmethod
     def match_type(type):
@@ -502,7 +502,7 @@ class TemperatureOperation(BasicNumericOperation):
 
     def convert_dev_to_hass(self, dev_value):
         """Convert device state value to HASS."""
-        return TemperatureConverter.convert(float(dev_value), self._unit, TEMP_CELSIUS)
+        return TemperatureConverter.convert(float(dev_value), self._unit, UnitOfTemperature.CELSIUS)
 
     def convert_hass_to_dev(self, hass_value):
         v = hass_value
@@ -512,4 +512,4 @@ class TemperatureOperation(BasicNumericOperation):
         if self._max is not None and hass_value > self._max:
             v = self._max
 
-        return TemperatureConverter.convert(float(v), TEMP_CELSIUS, self._unit)
+        return TemperatureConverter.convert(float(v), UnitOfTemperature.CELSIUS, self._unit)
