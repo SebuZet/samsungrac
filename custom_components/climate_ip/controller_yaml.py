@@ -16,7 +16,7 @@ from homeassistant.const import (
     CONF_TEMPERATURE_UNIT,
     CONF_TOKEN,
     STATE_ON,
-    TEMP_CELSIUS,
+    UnitOfTemperature.CELSIUS,
 )
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 
@@ -84,7 +84,7 @@ class YamlController(ClimateController):
         self._attributes = {"controller": self.id}
         self._state_getter = None
         self._debug = config.get("debug", False)
-        self._temp_unit = TEMP_CELSIUS
+        self._temp_unit = UnitOfTemperature.CELSIUS
         self._service_schema_map = {vol.Optional(ATTR_ENTITY_ID): cv.comp_entity_ids}
         self._logger.setLevel(logging.INFO if self._debug else logging.ERROR)
         self._yaml = config.get(CONF_CONFIG_FILE)
