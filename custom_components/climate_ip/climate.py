@@ -161,10 +161,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             if not hasattr(device, "async_set_custom_operation"):
                 continue
             await getattr(device, "async_set_custom_operation")(**params)
-            update_tasks.append(device.async_update_ha_state(True))
+            update_tasks.append(asyncio.create_task(device.async_update_ha_state(True)))
 
         if update_tasks:
-            await asyncio.wait(update_tasks, loop=hass.loop)
+            await asyncio.wait(update_tasks)
 
     service_schema = (
         device_controller.service_schema_map
@@ -258,7 +258,7 @@ class ClimateIP(ClimateEntity):
         if self._unique_id is None:
             name_value = self._name
             _LOGGER.info("About to set unique id {}".format(name_value))
-            self._unique_id = "climate_ip_" + name_value
+            self._unique_id = "climate_ip_" + str(name_value)
 
         _LOGGER.info("Returning unique id of {}".format(self._unique_id))
         return self._unique_id
