@@ -29,8 +29,8 @@ from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     DOMAIN,
-    HVACMode.OFF,
     ClimateEntity,
+    HVACMode,
 )
 from homeassistant.components.climate.const import (
     ATTR_MAX_TEMP,
@@ -50,8 +50,7 @@ from homeassistant.const import (
     STATE_ON,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
-    UnitOfTemperature.CELSIUS,
-    UnitOfTemperature.FAHRENHEIT,
+    UnitOfTemperature,
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
@@ -230,14 +229,18 @@ class ClimateIP(ClimateEntity):
         t = self.rac.get_property(ATTR_MIN_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MIN
-        return TemperatureConverter.convert(t, UnitOfTemperature.CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(
+            t, UnitOfTemperature.CELSIUS, self.temperature_unit
+        )
 
     @property
     def max_temp(self):
         t = self.rac.get_property(ATTR_MAX_TEMP)
         if t is None:
             t = DEFAULT_CLIMATE_IP_TEMP_MAX
-        return TemperatureConverter.convert(t, UnitOfTemperature.CELSIUS, self.temperature_unit)
+        return TemperatureConverter.convert(
+            t, UnitOfTemperature.CELSIUS, self.temperature_unit
+        )
 
     @property
     def should_poll(self):

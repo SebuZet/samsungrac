@@ -1,13 +1,7 @@
 import json
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.const import (
-    STATE_OFF,
-    STATE_ON,
-    STATE_UNKNOWN,
-    UnitOfTemperature.CELSIUS,
-    UnitOfTemperature.FAHRENHEIT,
-)
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN, UnitOfTemperature
 
 # from homeassistant.util.temperature import convert as convert_temperature
 from homeassistant.util.unit_conversion import TemperatureConverter
@@ -502,7 +496,9 @@ class TemperatureOperation(BasicNumericOperation):
 
     def convert_dev_to_hass(self, dev_value):
         """Convert device state value to HASS."""
-        return TemperatureConverter.convert(float(dev_value), self._unit, UnitOfTemperature.CELSIUS)
+        return TemperatureConverter.convert(
+            float(dev_value), self._unit, UnitOfTemperature.CELSIUS
+        )
 
     def convert_hass_to_dev(self, hass_value):
         v = hass_value
@@ -512,4 +508,6 @@ class TemperatureOperation(BasicNumericOperation):
         if self._max is not None and hass_value > self._max:
             v = self._max
 
-        return TemperatureConverter.convert(float(v), UnitOfTemperature.CELSIUS, self._unit)
+        return TemperatureConverter.convert(
+            float(v), UnitOfTemperature.CELSIUS, self._unit
+        )
